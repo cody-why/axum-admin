@@ -1,31 +1,33 @@
-#[macro_use]
-extern crate rbatis;
+use std::{env, net::SocketAddr};
+
+use axum::{middleware, Router, routing::{get, post}};
+use diesel::MysqlConnection;
+use diesel::r2d2::{self, ConnectionManager};
+use dotenvy::dotenv;
+use once_cell::sync::Lazy;
+
+use crate::handler::{menu_handler, role_handler, user_handler};
+use crate::utils::auth::auth;
 
 pub mod model;
 pub mod vo;
 pub mod handler;
 pub mod utils;
+pub mod schema;
 
-use axum::{ routing::{get, post}, Router, middleware};
+type DbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
 
-use std::{
-    net::SocketAddr,
-    sync::{Arc},
-};
-use rbatis::RBatis;
-use crate::handler::{menu_handler, role_handler, user_handler};
-use crate::model::db::init_db;
-use crate::utils::auth::auth;
-
-pub struct AppState {
-    pub batis: RBatis,
-}
+pub static RB: Lazy<DbPool> = Lazy::new(|| {
+    let database_url = env::var("database_url").expect("database_url must be set");
+    let manager = ConnectionManager::<MysqlConnection>::new(database_url);
+    r2d2::Pool::builder().build(manager).expect("Failed to create pool.")
+});
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
     log4rs::init_file("src/config/log4rs.yaml", Default::default()).unwrap();
-    let rb = init_db().await;
-    let shared_state = Arc::new(AppState { /* ... */ batis: rb.clone() });
+
 
     let app = Router::new()
         .nest("/api", Router::new()
@@ -48,8 +50,7 @@ async fn main() {
             .route("/menu_save", post(menu_handler::menu_save))
             .route("/menu_delete", post(menu_handler::menu_delete))
             .route("/menu_update", post(menu_handler::menu_update))
-            .route_layer(middleware::from_fn(auth))
-            .with_state(shared_state));
+            .route_layer(middleware::from_fn(auth)));
 
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
