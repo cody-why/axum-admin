@@ -67,17 +67,15 @@ pub async fn role_save(Json(role): Json<RoleSaveReq>) -> impl IntoResponse {
         remark: role.remark.unwrap(),
     };
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
-            handle_result(diesel::insert_into(sys_role::table()).values(role_add).execute(conn))
+            Json(handle_result(diesel::insert_into(sys_role::table()).values(role_add).execute(conn)))
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Json(err_result_msg(err.to_string()))
         }
-    };
-
-    Json(resp)
+    }
 }
 
 // 更新角色信息
@@ -91,23 +89,21 @@ pub async fn role_update(Json(role): Json<RoleUpdateReq>) -> impl IntoResponse {
         remark: role.remark.unwrap_or_default(),
     };
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
-            handle_result(diesel::update(sys_role).filter(id.eq(&role.id)).set(s_role).execute(conn))
+            Json(handle_result(diesel::update(sys_role).filter(id.eq(&role.id)).set(s_role).execute(conn)))
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Json(err_result_msg(err.to_string()))
         }
-    };
-
-    Json(resp)
+    }
 }
 
 // 删除角色信息
 pub async fn role_delete(Json(item): Json<RoleDeleteReq>) -> impl IntoResponse {
     log::info!("role_delete params: {:?}", &item);
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
             let ids = item.ids.clone();
             //查询角色有没有被使用了,如果使用了就不能删除
@@ -117,21 +113,19 @@ pub async fn role_delete(Json(item): Json<RoleDeleteReq>) -> impl IntoResponse {
                         error!("err:{}", "角色已被使用,不能删除".to_string());
                         return Json(err_result_msg("角色已被使用,不能删除".to_string()));
                     }
-                    handle_result(diesel::delete(sys_role.filter(id.eq_any(&item.ids))).execute(conn))
+                    Json(handle_result(diesel::delete(sys_role.filter(id.eq_any(&item.ids))).execute(conn)))
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());
-                    err_result_msg(err.to_string())
+                    Json(err_result_msg(err.to_string()))
                 }
             }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Json(err_result_msg(err.to_string()))
         }
-    };
-
-    Json(resp)
+    }
 }
 
 // 查询角色关联的菜单
@@ -184,7 +178,7 @@ pub async fn query_role_menu(Json(item): Json<QueryRoleMenuReq>) -> Result<impl 
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            return Err(Json(err_result_msg(err.to_string())));
+            Err(Json(err_result_msg(err.to_string())))
         }
     }
 }
@@ -196,7 +190,7 @@ pub async fn update_role_menu(Json(item): Json<UpdateRoleMenuReq>) -> impl IntoR
     let r_id = item.role_id.clone();
     let menu_ids = item.menu_ids.clone();
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
             match diesel::delete(sys_role_menu.filter(role_id.eq(r_id))).execute(conn) {
                 Ok(_) => {
@@ -211,19 +205,17 @@ pub async fn update_role_menu(Json(item): Json<UpdateRoleMenuReq>) -> impl IntoR
                         })
                     }
 
-                    handle_result(diesel::insert_into(sys_role_menu::table()).values(role_menu).execute(conn))
+                    Json(handle_result(diesel::insert_into(sys_role_menu::table()).values(role_menu).execute(conn)))
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());
-                    err_result_msg(err.to_string())
+                    Json(err_result_msg(err.to_string()))
                 }
             }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Json(err_result_msg(err.to_string()))
         }
-    };
-
-    Json(resp)
+    }
 }

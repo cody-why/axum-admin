@@ -69,17 +69,15 @@ pub async fn menu_save(Json(menu): Json<MenuSaveReq>) -> impl IntoResponse {
         menu_type: menu.menu_type,
     };
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
-            handle_result(diesel::insert_into(sys_menu::table()).values(menu_add).execute(conn))
+            Json(handle_result(diesel::insert_into(sys_menu::table()).values(menu_add).execute(conn)))
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Json(err_result_msg(err.to_string()))
         }
-    };
-
-    Json(resp)
+    }
 }
 
 // 更新菜单
@@ -99,23 +97,21 @@ pub async fn menu_update(Json(menu): Json<MenuUpdateReq>) -> impl IntoResponse {
         menu_type: menu.menu_type,
     };
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
-            handle_result(diesel::update(sys_menu).filter(id.eq(&menu.id)).set(s_menu).execute(conn))
+            Json(handle_result(diesel::update(sys_menu).filter(id.eq(&menu.id)).set(s_menu).execute(conn)))
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Json(err_result_msg(err.to_string()))
         }
-    };
-
-    Json(resp)
+    }
 }
 
 // 删除菜单信息
 pub async fn menu_delete(Json(item): Json<MenuDeleteReq>) -> impl IntoResponse {
     log::info!("menu_delete params: {:?}", &item);
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
             match sys_menu.filter(parent_id.eq(&item.id)).count().get_result::<i64>(conn) {
                 Ok(count) => {
@@ -123,19 +119,17 @@ pub async fn menu_delete(Json(item): Json<MenuDeleteReq>) -> impl IntoResponse {
                         error!("err:{}", "有下级菜单,不能直接删除".to_string());
                         return Json(err_result_msg("有下级菜单,不能直接删除".to_string()));
                     }
-                    handle_result(diesel::delete(sys_menu.filter(id.eq(&item.id))).execute(conn))
+                    Json(handle_result(diesel::delete(sys_menu.filter(id.eq(&item.id))).execute(conn)))
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());
-                    err_result_msg(err.to_string())
+                    Json(err_result_msg(err.to_string()))
                 }
             }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Json(err_result_msg(err.to_string()))
         }
-    };
-
-    Json(resp)
+    }
 }

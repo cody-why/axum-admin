@@ -168,7 +168,7 @@ pub async fn update_user_role(Json(item): Json<UpdateUserRoleReq>) -> impl IntoR
         return Json(err_result_msg("不能修改超级管理员的角色".to_string()));
     }
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
             match diesel::delete(sys_user_role.filter(user_id.eq(u_id))).execute(conn) {
                 Ok(_) => {
@@ -181,21 +181,19 @@ pub async fn update_user_role(Json(item): Json<UpdateUserRoleReq>) -> impl IntoR
                             user_id: u_id.clone(),
                         })
                     }
-                    handle_result(diesel::insert_into(sys_user_role::table()).values(&sys_role_user_list).execute(conn))
+                    Json(handle_result(diesel::insert_into(sys_user_role::table()).values(&sys_role_user_list).execute(conn)))
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());
-                    err_result_msg(err.to_string())
+                    Json(err_result_msg(err.to_string()))
                 }
             }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Json(err_result_msg(err.to_string()))
         }
-    };
-
-    Json(resp)
+    }
 }
 
 pub async fn query_user_menu(headers: HeaderMap) -> Result<impl IntoResponse, impl IntoResponse> {
@@ -222,9 +220,9 @@ pub async fn query_user_menu(headers: HeaderMap) -> Result<impl IntoResponse, im
 
     info!("query user menu params {:?}",jwt_token);
 
-    match &mut RB.clone().get() {
+    return match &mut RB.clone().get() {
         Ok(conn) => {
-            return match sql_query("select * from sys_user where id = ?").bind::<Bigint, _>(jwt_token.id).get_result::<SysUser>(conn) {
+            match sql_query("select * from sys_user where id = ?").bind::<Bigint, _>(jwt_token.id).get_result::<SysUser>(conn) {
                 Ok(user) => {
                     let user_role_sql = sql_query("SELECT * FROM sys_user_role where user_id = ? and role_id = 1");
                     let sys_menu_list: Vec<SysMenu>;
@@ -311,13 +309,13 @@ pub async fn query_user_menu(headers: HeaderMap) -> Result<impl IntoResponse, im
                     error!("err:{}", err.to_string());
                     return Err(Json(err_result_msg(err.to_string())));
                 }
-            };
+            }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            return Err(Json(err_result_msg(err.to_string())));
+            Err(Json(err_result_msg(err.to_string())))
         }
-    }
+    };
 }
 
 // 查询用户列表
@@ -379,7 +377,7 @@ pub async fn user_save(Json(user): Json<UserSaveReq>) -> impl IntoResponse {
 pub async fn user_update(Json(user): Json<UserUpdateReq>) -> impl IntoResponse {
     info!("user_update params: {:?}", &user);
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
             let user_sql = sql_query("SELECT * FROM sys_user where id = ? ");
 
@@ -397,21 +395,19 @@ pub async fn user_update(Json(user): Json<UserUpdateReq>) -> impl IntoResponse {
 
                     let query = diesel::update(sys_user.filter(id.eq(user.id.clone()))).set(s_user);
                     debug!("SQL:{}", diesel::debug_query::<diesel::mysql::Mysql, _>(&query).to_string());
-                    handle_result(query.execute(conn))
+                    Json(handle_result(query.execute(conn)))
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());
-                    err_result_msg(err.to_string())
+                    Json(err_result_msg(err.to_string()))
                 }
             }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Json(err_result_msg(err.to_string()))
         }
-    };
-
-    Json(resp)
+    }
 }
 
 // 删除用户信息
@@ -419,7 +415,7 @@ pub async fn user_delete(Json(item): Json<UserDeleteReq>) -> impl IntoResponse {
     info!("user_delete params: {:?}", &item);
     info!("user_delete params: {:?}", &item);
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
             let ids = item.ids.clone();
             //id为1的用户为系统预留用户,不能删除
@@ -438,22 +434,20 @@ pub async fn user_delete(Json(item): Json<UserDeleteReq>) -> impl IntoResponse {
 
             let query = diesel::delete(sys_user.filter(id.eq_any(delete_ids)));
             debug!("SQL: {}", diesel::debug_query::<diesel::mysql::Mysql, _>(&query).to_string());
-            handle_result(query.execute(conn))
+            Json(handle_result(query.execute(conn)))
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Json(err_result_msg(err.to_string()))
         }
-    };
-
-    Json(resp)
+    }
 }
 
 // 更新用户密码
 pub async fn update_user_password(Json(item): Json<UpdateUserPwdReq>) -> impl IntoResponse {
     info!("update_user_pwd params: {:?}", &item);
 
-    let resp = match &mut RB.clone().get() {
+    match &mut RB.clone().get() {
         Ok(conn) => {
             let user_sql = sql_query("SELECT * FROM sys_user where id = ? ");
             match user_sql.bind::<Bigint, _>(item.id).get_result::<SysUser>(conn) {
@@ -462,19 +456,17 @@ pub async fn update_user_password(Json(item): Json<UpdateUserPwdReq>) -> impl In
                         error!("err:{}", "旧密码不正确".to_string());
                         return Json(err_result_msg("旧密码不正确".to_string()));
                     }
-                    handle_result(diesel::update(sys_user.filter(id.eq(item.id.clone()))).set(schema::sys_user::password.eq(&item.re_pwd)).execute(conn))
+                    Json(handle_result(diesel::update(sys_user.filter(id.eq(item.id.clone()))).set(schema::sys_user::password.eq(&item.re_pwd)).execute(conn)))
                 }
                 Err(err) => {
                     error!("err:{}", err.to_string());
-                    err_result_msg(err.to_string())
+                    Json(err_result_msg(err.to_string()))
                 }
             }
         }
         Err(err) => {
             error!("err:{}", err.to_string());
-            err_result_msg(err.to_string())
+            Json(err_result_msg(err.to_string()))
         }
-    };
-
-    Json(resp)
+    }
 }
