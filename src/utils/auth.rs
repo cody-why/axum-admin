@@ -1,6 +1,7 @@
+use axum::{http, response};
 use axum::http::{Request, StatusCode};
 use axum::middleware::Next;
-use axum::{http, response};
+
 use crate::utils::error::WhoUnfollowedError;
 use crate::utils::jwt_util::JWTToken;
 
@@ -49,5 +50,4 @@ pub async fn auth<B>(req: Request<B>, next: Next<B>) -> Result<response::Respons
     } else {
         Err(StatusCode::UNAUTHORIZED)
     }
-
 }
