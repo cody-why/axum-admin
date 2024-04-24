@@ -1,11 +1,12 @@
 use axum::{http, response};
-use axum::http::{Request, StatusCode};
+use axum::extract::Request;
+use axum::http::{StatusCode};
 use axum::middleware::Next;
 
 use crate::utils::error::WhoUnfollowedError;
 use crate::utils::jwt_util::JWTToken;
 
-pub async fn auth<B>(req: Request<B>, next: Next<B>) -> Result<response::Response, StatusCode> {
+pub async fn auth(req: Request, next: Next) -> Result<response::Response, StatusCode> {
     log::info!("req {:?}",req.uri());
     let path = req.uri().to_string();
     if path.eq("/login") {
