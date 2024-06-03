@@ -1,7 +1,10 @@
 use rbatis::rbatis::RBatis;
 
 pub async fn init_db() -> RBatis {
+    let url = include_str!("../../.env").trim_start_matches("DATABASE_URL=");
     let rb = RBatis::new();
-    rb.init(rbdc_mysql::driver::MysqlDriver {}, "mysql://root:ad879037-c7a4-4063-9236-6bfc35d54b7d@139.159.180.129:3306/rustdb").unwrap();
-    return rb;
+    rb.init(rbdc_mysql::driver::MysqlDriver {}, url).unwrap();
+    let pool = rb.get_pool().unwrap();
+    pool.set_max_open_conns(10).await;
+    rb
 }

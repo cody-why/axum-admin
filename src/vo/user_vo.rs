@@ -1,4 +1,9 @@
+use rbatis::rbdc::DateTime;
 use serde::{Deserialize, Serialize};
+use crate::model::menu::SysMenu;
+
+use crate::model::role::SysRole;
+use crate::model::user::SysUser;
 
 #[derive(Debug, Deserialize)]
 pub struct UserLoginReq {
@@ -8,7 +13,7 @@ pub struct UserLoginReq {
 
 #[derive(Debug, Deserialize)]
 pub struct QueryUserRoleReq {
-    pub user_id: i32,
+    pub user_id: u64,
 }
 
 
@@ -29,9 +34,23 @@ pub struct UserRoleList {
     pub update_time: String,
 }
 
+impl From<SysRole> for UserRoleList {
+    fn from(x: SysRole) -> Self {
+        Self {
+            id: x.id.unwrap(),
+            status_id: x.status_id,
+            sort: x.sort,
+            role_name: x.role_name,
+            remark: x.remark.unwrap_or_default(),
+            create_time: x.create_time.unwrap().to_string(),
+            update_time: x.update_time.unwrap().to_string(),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct UpdateUserRoleReq {
-    pub user_id: i32,
+    pub user_id: u64,
     pub role_ids: Vec<i32>,
 }
 
@@ -67,7 +86,19 @@ pub struct MenuUserList {
     pub icon: String,
 }
 
-
+impl From<SysMenu> for MenuUserList {
+    fn from(menu: SysMenu) -> Self {
+        Self {
+            id: menu.id.unwrap(),
+            parent_id: menu.parent_id,
+            name: menu.menu_name,
+            icon: menu.menu_icon.unwrap_or_default(),
+            api_url: menu.api_url.unwrap_or_default(),
+            menu_type: menu.menu_type,
+            path: menu.menu_url.unwrap_or_default(),
+        }
+    }
+}
 #[derive(Debug, Deserialize)]
 pub struct UserListReq {
     #[serde(rename = "current")]
@@ -89,7 +120,7 @@ pub struct UserListResp {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserListData {
-    pub id: i32,
+    pub id: u64,
     pub sort: i32,
     pub status_id: i32,
     pub mobile: String,
@@ -99,6 +130,20 @@ pub struct UserListData {
     pub update_time: String,
 }
 
+impl From<SysUser> for UserListData {
+    fn from(user: SysUser) -> Self {
+        Self {
+            id: user.id.unwrap(),
+            sort: user.sort,
+            status_id: user.status_id,
+            mobile: user.mobile,
+            user_name: user.user_name,
+            remark: user.remark.unwrap_or_default(),
+            create_time: user.create_time.unwrap().to_string(),
+            update_time: user.update_time.unwrap().to_string(),
+        }
+    }
+}
 #[derive(Debug, Deserialize)]
 pub struct UserSaveReq {
     pub mobile: String,
@@ -108,15 +153,35 @@ pub struct UserSaveReq {
     pub remark: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+impl From<UserSaveReq> for SysUser {
+    fn from(item: UserSaveReq) -> Self {
+        let now = Some(DateTime::now());
+        Self {
+            id: None,
+            create_time: now.clone(),
+            update_time: now,
+            status_id: item.status_id,
+            sort: item.sort,
+            mobile: item.mobile,
+            user_name: item.user_name,
+            remark: item.remark,
+            password: "123456".to_string(),//默认密码为123456,暂时不加密
+        }
+    }
+}
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UserUpdateReq {
-    pub id: i32,
+    pub id: u64,
     pub sort: i32,
     pub status_id: i32,
     pub mobile: String,
+    // deserialize rename, see https://serde.rs/field-attrs.html#rename
+    // #[serde(rename(deserialize = "real_name"))]
     pub user_name: String,
     pub remark: Option<String>,
 }
+
+impl_update!(UserUpdateReq{}, "sys_user");
 
 #[derive(Debug, Deserialize)]
 pub struct UserDeleteReq {
@@ -125,7 +190,7 @@ pub struct UserDeleteReq {
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateUserPwdReq {
-    pub id: i32,
+    pub id: u64,
     pub pwd: String,
     pub re_pwd: String,
 }

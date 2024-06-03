@@ -1,6 +1,7 @@
 use rbatis::rbdc::datetime::DateTime;
-use crate::rbatis::rbatis_codegen::IntoSql;
 use serde::{Deserialize, Serialize};
+
+use crate::rbatis::rbatis_codegen::IntoSql;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SysMenu {
@@ -19,12 +20,17 @@ pub struct SysMenu {
 
 }
 
+#[derive(Clone, Debug, Deserialize)]
+pub struct SysMenuUrl {
+    pub api_url: Option<String>,
+}
+
 rbatis::crud!(SysMenu {});
 impl_select_page!(SysMenu{select_page() =>"
      if !sql.contains('count'):
        order by create_time asc"});
 
-impl_select_page!(SysMenu{select_page_by_name(name:&str) =>"
+impl_select_page!(SysMenu{select_page_by_name(name: &str) =>"
      if name != null && name != '':
        where user_name != #{name}
      if name == '':
@@ -32,4 +38,5 @@ impl_select_page!(SysMenu{select_page_by_name(name:&str) =>"
 
 impl_select!(SysMenu{select_by_id(id:i32) -> Option => "`where id = #{id} limit 1`"});
 
-impl_select!(SysMenu{select_by_ids(ids:&[i32]) -> Vec => "`where status_id = 1 and id in ${ids.sql()} order by sort asc`"});
+impl_select!(SysMenu{select_by_ids(ids:&[i32]) -> Vec => "`where id in ${ids.sql()}  and status_id = 1 order by sort asc`"});
+

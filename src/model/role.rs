@@ -18,7 +18,7 @@ impl_select_page!(SysRole{select_page() =>"
      if !sql.contains('count'):
        order by create_time desc"});
 
-impl_select_page!(SysRole{select_page_by_name(role_name:&str,status_id:&str) =>"
+impl_select_page!(SysRole{select_page_by_name(role_name: &str, status_id: &str) =>"
       where 1=1
      if role_name != null && role_name != '':
        ` and role_name = #{role_name} `

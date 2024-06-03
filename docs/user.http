@@ -1,13 +1,20 @@
+# @host=http://localhost:3000
 
 ###登录 login
+# @name login
 POST {{host}}/api/login
 Content-Type: application/json
 
 {
-  "mobile": "18613030352",
-  "password": "123456"
+  "mobile": "18500000000",
+  "password": "e10adc3949ba59abbe56e057f20f883e"
 }
+
 > {% client.global.set("token", response.body.data); %}
+
+###vscode @token = {{login.response.body.data}}
+
+
 
 ###查询用户菜单 query_user_menu
 GET {{host}}/api/query_user_menu
@@ -25,6 +32,7 @@ Authorization: Bearer {{token}}
   "mobile": "18613030352",
   "status_id": 1
 }
+
 ###新增用户 user_save
 POST {{host}}/api/user_save
 Content-Type: application/json
@@ -35,6 +43,7 @@ Authorization: Bearer {{token}}
   "user_name": "test",
   "remark": "test"
 }
+
 ###删除用户 user_delete
 POST {{host}}/api/user_delete
 Content-Type: application/json
@@ -43,6 +52,7 @@ Authorization: Bearer {{token}}
 {
   "ids": [13]
 }
+
 ###更新用户 user_update
 POST {{host}}/api/user_update
 Content-Type: application/json

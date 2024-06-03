@@ -5,7 +5,7 @@
 # 前端项目
 
 ```
-https://github.com/feihua/antd-admin.git
+https://github.com/cody-why/antd-admin.git
 ```
 
 # 相关rust web框架项目
