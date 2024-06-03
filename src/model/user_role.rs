@@ -10,7 +10,7 @@ pub struct SysUserRole {
     pub status_id: i32,
     pub sort: i32,
     pub role_id: i32,
-    pub user_id: i32,
+    pub user_id: u64,
 
 }
 
@@ -26,4 +26,4 @@ impl_select_page!(SysUserRole{select_page_by_name(name:&str) =>"
        where user_name != ''"});
 
 // 查询是否为超级管理员(role_id=1是预设超级管理的id)
-impl_select!(SysUserRole{is_admin(user_id:&i32) => "`where user_id = #{user_id} and role_id = 1`"});
+impl_select!(SysUserRole{is_admin(user_id:u64) => "`where user_id = #{user_id} and role_id = 1`"});

@@ -1,18 +1,13 @@
 use thiserror::Error;
+
 #[derive(Error, Debug)]
-pub enum WhoUnfollowedError {
-    // #[error("Failed to complete an HTTP request")]
-    // Http { #[from] source: reqwest::Error },
-    //
-    #[error("Failed to read the cache file")]
-    DiskCacheRead { source: std::io::Error },
-    //
-    // #[error("Failed to update the cache file")]
-    // DiskCacheWrite { source: std::io::Error },
-
-    #[error("")]
-    JwtTokenError(String),
-
-
-
+pub enum Error {
+    #[error("{0}")]
+    E(String),
+    #[error("{0}")]
+    Io(std::io::Error),
+    #[error("{0}")]
+    JwtToken(jsonwebtoken::errors::Error),
+    #[error("{0}")]
+    Code(String, String),
 }

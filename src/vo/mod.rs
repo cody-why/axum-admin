@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use axum::response::IntoResponse;
 
 use rbatis::rbdc::Error;
 use rbatis::rbdc::db::ExecResult;
@@ -18,11 +19,19 @@ pub struct BaseResponse<T>
     pub data: Option<T>,
 }
 
+impl <T>IntoResponse for BaseResponse<T>
+    where T: Serialize + Debug
+{
+    fn into_response(self) -> axum::response::Response {
+        axum::Json(self).into_response()
+    }
+}
+
 // 处理统一返回
 pub fn handle_result(result: Result<ExecResult, Error>) -> BaseResponse<String> {
     match result {
         Ok(_u) => {
-            ok_result()
+            ok_result_msg("操作成功")
         }
         Err(err) => {
             err_result_msg(err.to_string())
@@ -31,25 +40,17 @@ pub fn handle_result(result: Result<ExecResult, Error>) -> BaseResponse<String> 
 }
 
 
-pub fn ok_result() -> BaseResponse<String> {
+pub fn ok_result_msg(msg: impl Into<String>) -> BaseResponse<String> {
     BaseResponse {
-        msg: "操作成功".to_string(),
+        msg: msg.into(),
         code: 0,
         data: Some("None".to_string()),
     }
 }
 
-pub fn ok_result_msg(msg: String) -> BaseResponse<String> {
+pub fn ok_result_code(code: i32, msg: impl Into<String>) -> BaseResponse<String> {
     BaseResponse {
-        msg: msg.to_string(),
-        code: 0,
-        data: Some("None".to_string()),
-    }
-}
-
-pub fn ok_result_code(code: i32, msg: String) -> BaseResponse<String> {
-    BaseResponse {
-        msg: msg.to_string(),
+        msg: msg.into(),
         code,
         data: Some("None".to_string()),
     }
@@ -63,17 +64,17 @@ pub fn ok_result_data<T: Serialize + Debug>(data: T) -> BaseResponse<T> {
     }
 }
 
-pub fn err_result_msg(msg: String) -> BaseResponse<String> {
+pub fn err_result_msg(msg: impl Into<String>) -> BaseResponse<String> {
     BaseResponse {
-        msg: msg.to_string(),
+        msg: msg.into(),
         code: 1,
         data: Some("None".to_string()),
     }
 }
 
-pub fn err_result_code(code: i32, msg: String) -> BaseResponse<String> {
+pub fn err_result_code(code: i32, msg: impl Into<String>) -> BaseResponse<String> {
     BaseResponse {
-        msg: msg.to_string(),
+        msg: msg.into(),
         code,
         data: Some("None".to_string()),
     }

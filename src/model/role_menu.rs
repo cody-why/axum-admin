@@ -1,7 +1,8 @@
 use std::collections::HashMap;
+
+use rbatis::rbatis::RBatis;
 use rbatis::rbdc::datetime::DateTime;
 use serde::{Deserialize, Serialize};
-use rbatis::rbatis::RBatis;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SysRoleMenu {
@@ -15,12 +16,28 @@ pub struct SysRoleMenu {
 
 }
 
+impl SysRoleMenu {
+    pub fn new(role_id: i32, menu_id: i32) -> Self {
+        let now = Some(DateTime::now());
+        Self {
+            id: None,
+            create_time: now.clone(),
+            update_time: now,
+            status_id: 1,
+            sort: 1,
+            menu_id,
+            role_id,
+
+        }
+    }
+}
+
 rbatis::crud!(SysRoleMenu {});
 impl_select_page!(SysRoleMenu{select_page() =>"
      if !sql.contains('count'):
        order by create_time desc"});
 
-impl_select_page!(SysRoleMenu{select_page_by_name(name:&str) =>"
+impl_select_page!(SysRoleMenu{select_page_by_name(name: &str) =>"
      if name != null && name != '':
        where user_name != #{name}
      if name == '':

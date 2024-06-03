@@ -1,3 +1,4 @@
+#![allow(clippy::needless_question_mark)]
 pub mod db;
 pub mod user;
 pub mod role;
