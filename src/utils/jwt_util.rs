@@ -1,12 +1,12 @@
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
 use axum::extract::FromRequestParts;
 use axum::http::header;
 use axum::http::request::Parts;
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation, Algorithm};
+use jsonwebtoken::{Algorithm, decode, DecodingKey, encode, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use crate::utils::error::Error::JwtToken;
 
-use super::error::Error;
+use crate::error::Error;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JWTToken {
@@ -49,7 +49,7 @@ impl JWTToken {
             &EncodingKey::from_secret(secret.as_ref()),
         ) {
             Ok(t) => Ok(t),
-            Err(e) => Err(JwtToken(e)),
+            Err(e) => Err(Error::Jwt(e)),
         };
     }
     /// verify token invalid
@@ -65,7 +65,7 @@ impl JWTToken {
             &DecodingKey::from_secret(secret.as_ref()),
             &validation,
         ).map(|c| c.claims)
-           .map_err(JwtToken)
+            .map_err(Error::Jwt)
         
     }
 }

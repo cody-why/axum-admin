@@ -1,14 +1,29 @@
+use std::fmt::Debug;
+
+use rbatis::rbdc;
 use thiserror::Error;
+
+pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("{0}")]
     E(String),
     #[error("{0}")]
-    Io(std::io::Error),
-
+    Io(#[from] std::io::Error),
+    #[error("{0}")]
+    Db(#[from] rbdc::Error),
+    #[error("{0}")]
+    Jwt(#[from] jsonwebtoken::errors::Error),
     #[error("{0}: {1}")]
     Code(String, String),
+}
+
+
+impl From<&str> for Error {
+    fn from(s: &str) -> Self {
+        Error::E(s.to_string())
+    }
 }
 
 

@@ -1,5 +1,7 @@
-DROP TABLE IF EXISTS sys_user;
-create table sys_user
+--DROP TABLE IF EXISTS sys_user;
+
+-- 创建用户信息表
+CREATE TABLE sys_user
 (
     id          bigint UNSIGNED auto_increment comment '主键'
         primary key,
@@ -16,5 +18,6 @@ create table sys_user
 )
     comment '用户信息';
 
+-- 初始化数据
 INSERT INTO sys_user (id, mobile, user_name, password, status_id, sort, remark) VALUES (1, '18500000000', '超级用户', '$2b$12$HDdZBmuoaWASJmEncppJrOMmtHxtW2K.RDGzzMc0IGffn6I4gUWQ2', 1, 1, '超级用户');
 INSERT INTO sys_user (id, mobile, user_name, password, status_id, sort, remark) VALUES (2, '13800000000', '普通用户', '$2b$12$HDdZBmuoaWASJmEncppJrOMmtHxtW2K.RDGzzMc0IGffn6I4gUWQ2', 1, 1, '演示权限');

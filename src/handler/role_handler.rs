@@ -11,7 +11,7 @@ use crate::model::menu::SysMenu;
 use crate::model::role::SysRole;
 use crate::model::role_menu::{query_menu_by_role, SysRoleMenu};
 use crate::model::user_role::SysUserRole;
-use crate::vo::{err_result_msg, err_result_page, handle_result, ok_result_data, ok_result_page};
+use crate::vo::*;
 use crate::vo::role_vo::*;
 
 pub fn router() -> Router<Arc<AppState>>{
@@ -41,15 +41,7 @@ pub async fn role_list(State(state): State<Arc<AppState>>, Json(item): Json<Role
             let total = page.total;
 
             for role in page.records {
-                // role_list.push(RoleListData {
-                //     id: role.id.unwrap(),
-                //     sort: role.sort,
-                //     status_id: role.status_id,
-                //     role_name: role.role_name,
-                //     remark: role.remark.unwrap_or_default(),
-                //     create_time: role.create_time.unwrap().0.to_string(),
-                //     update_time: role.update_time.unwrap().0.to_string(),
-                // })
+
                 role_list.push(RoleListData::from(role));
             }
 
@@ -94,11 +86,11 @@ pub async fn role_delete(State(state): State<Arc<AppState>>, Json(item): Json<Ro
     let user_role_list = SysUserRole::select_in_column(rb, "role_id", &ids).await.unwrap_or_default();
 
     if !user_role_list.is_empty() {
-        return err_result_msg("角色已被使用,不能直接删除".to_string())
+        return handle_error("角色已被使用,不能直接删除").into_response();
     }
     let result = SysRole::delete_in_column(rb, "id", &item.ids).await;
 
-    handle_result(result)
+    handle_result(result).into_response()
 }
 
 // 查询角色关联的菜单
@@ -112,18 +104,6 @@ pub async fn query_role_menu(State(state): State<Arc<AppState>>, Json(item): Jso
     let mut menu_data_list: Vec<MenuDataList> = Vec::new();
     let mut role_menu_ids: Vec<i32> = Vec::new();
 
-    // for y in menu_list {
-    //     let x = y.clone();
-    //     menu_data_list.push(MenuDataList {
-    //         id: x.id.unwrap(),
-    //         parent_id: x.parent_id,
-    //         title: x.menu_name,
-    //         key: y.id.unwrap().to_string(),
-    //         label: y.menu_name,
-    //         is_penultimate: y.parent_id == 2,
-    //     });
-    //     role_menu_ids.push(x.id.unwrap())
-    // }
     for y in menu_list {
         let id = y.id.unwrap();
         menu_data_list.push(y.into());
@@ -140,11 +120,11 @@ pub async fn query_role_menu(State(state): State<Arc<AppState>>, Json(item): Jso
             role_menu_ids.push(m_id)
         }
     }
-
-    Json(ok_result_data(QueryRoleMenuData {
+    let result = QueryRoleMenuData {
         role_menus: role_menu_ids,
         menu_list: menu_data_list,
-    }))
+    };
+    handle_result_data(result)
 }
 
 // 更新角色关联的菜单
@@ -167,10 +147,10 @@ pub async fn update_role_menu(State(state): State<Arc<AppState>>, Json(item): Js
 
             let result = SysRoleMenu::insert_batch(rb, &menu_role, item.menu_ids.len() as u64).await;
 
-            handle_result(result)
+            handle_result(result).into_response()
         }
         Err(err) => {
-            err_result_msg(err.to_string())
+            handle_error(err).into_response()
         }
     }
 }

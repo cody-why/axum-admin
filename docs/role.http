@@ -1,14 +1,3 @@
-###登录 login
-# @name login
-POST {{host}}/api/login
-Content-Type: application/json
-
-{
-  "mobile": "18500000000",
-  "password": "123456"
-}
-
-@token = {{login.response.body.data}}
 
 ###查询角色菜单 query_role_menu
 POST {{host}}/api/query_role_menu

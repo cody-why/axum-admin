@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
-use axum::extract::State;
-use axum::routing::post;
 use axum::{Json, Router};
+use axum::extract::State;
 use axum::response::IntoResponse;
+use axum::routing::post;
+
 use crate::AppState;
 use crate::model::menu::SysMenu;
-use crate::vo::{err_result_msg, err_result_page, handle_result, ok_result_page};
-use crate::vo::menu_vo::{*};
+use crate::vo::*;
+use crate::vo::menu_vo::*;
 
 pub fn router() -> Router<Arc<AppState>>{
     Router::new()
@@ -72,10 +73,10 @@ pub async fn menu_delete(State(state): State<Arc<AppState>>, Json(item): Json<Me
     let menus = SysMenu::select_by_column(rb, "parent_id", &item.id).await.unwrap_or_default();
 
     if !menus.is_empty() {
-        return err_result_msg("有下级菜单,不能直接删除".to_string())
+        return handle_error("有下级菜单,不能直接删除").into_response()
     }
 
     let result = SysMenu::delete_by_column(rb, "id", &item.id).await;
 
-    handle_result(result)
+    handle_result(result).into_response()
 }

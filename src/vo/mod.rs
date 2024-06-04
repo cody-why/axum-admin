@@ -1,9 +1,8 @@
 use std::fmt::Debug;
 use axum::response::IntoResponse;
-
-use rbatis::rbdc::Error;
-use rbatis::rbdc::db::ExecResult;
 use serde::Serialize;
+
+use crate::error::Error;
 
 pub mod user_vo;
 pub mod role_vo;
@@ -14,8 +13,8 @@ pub mod menu_vo;
 pub struct BaseResponse<T>
     where T: Serialize + Debug
 {
-    pub code: i32,
-    pub msg: String,
+    pub code: String,
+    pub msg: Option<String>,
     pub data: Option<T>,
 }
 
@@ -27,58 +26,107 @@ impl <T>IntoResponse for BaseResponse<T>
     }
 }
 
+impl<T> From<Result<T, Error>> for BaseResponse<T>
+    where T: Serialize + Debug,
+{
+    fn from(value: Result<T, Error>) -> Self {
+        match value {
+            Ok(data) => Self::from(data),
+            Err(e) => Self::from(e),
+        }
+    }
+}
+
+impl<T> From<Error> for BaseResponse<T>
+    where T: Serialize + Debug,
+{
+    fn from(e: Error) -> Self {
+        match e {
+            Error::E(msg) => Self {
+                code: "1".to_string(),
+                msg: Some(msg),
+                data: None,
+            },
+            Error::Code(code, msg) => Self {
+                code: code.to_string(),
+                msg: Some(msg),
+                data: None,
+            },
+            _ => Self {
+                code: "2".to_string(),
+                msg: Some("未知错误".to_string()),
+                data: None,
+            }
+        }
+    }
+}
+
+impl<T> From<T> for BaseResponse<T>
+    where T: Serialize + Debug,
+{
+    fn from(data: T) -> Self {
+        Self {
+            code: "0".to_string(),
+            msg: Some("操作成功".to_string()),
+            data: Some(data),
+        }
+    }
+}
+
+
+impl<T> BaseResponse<T>
+    where
+        T: Serialize + Debug,
+{
+    pub fn json(self) -> axum::Json<BaseResponse<T>> {
+        axum::Json(self)
+    }
+}
+
 // 处理统一返回
-pub fn handle_result(result: Result<ExecResult, Error>) -> BaseResponse<String> {
+pub fn handle_result<T>(result: Result<T, impl Into<Error>>) -> impl IntoResponse
+    where T: Serialize + Debug
+{
     match result {
-        Ok(_u) => {
-            ok_result_msg("操作成功")
+        Ok(d) => {
+            BaseResponse {
+                code: "0".to_string(),
+                msg: Some("操作成功".to_string()),
+                data: Some(d),
+            }
         }
         Err(err) => {
-            err_result_msg(err.to_string())
+            BaseResponse::from(err.into())
         }
     }
 }
 
 
-pub fn ok_result_msg(msg: impl Into<String>) -> BaseResponse<String> {
+pub fn handle_result_msg(msg: impl Into<String>) -> impl IntoResponse {
     BaseResponse {
-        msg: msg.into(),
-        code: 0,
-        data: Some("None".to_string()),
+        code: "0".to_string(),
+        msg: Some(msg.into()),
+        data: Some("".to_string()),
     }
 }
 
-pub fn ok_result_code(code: i32, msg: impl Into<String>) -> BaseResponse<String> {
-    BaseResponse {
-        msg: msg.into(),
-        code,
-        data: Some("None".to_string()),
-    }
+pub fn handle_result_data<T: Serialize + Debug>(data: T) -> impl IntoResponse {
+    BaseResponse::from(data)
 }
 
-pub fn ok_result_data<T: Serialize + Debug>(data: T) -> BaseResponse<T> {
-    BaseResponse {
-        msg: "操作成功".to_string(),
-        code: 0,
-        data: Some(data),
-    }
+pub fn handle_error(err: impl Into<Error>) -> impl IntoResponse{
+    BaseResponse::<String>::from(err.into())
 }
 
-pub fn err_result_msg(msg: impl Into<String>) -> BaseResponse<String> {
-    BaseResponse {
-        msg: msg.into(),
-        code: 1,
-        data: Some("None".to_string()),
-    }
-}
 
-pub fn err_result_code(code: i32, msg: impl Into<String>) -> BaseResponse<String> {
-    BaseResponse {
-        msg: msg.into(),
-        code,
-        data: Some("None".to_string()),
-    }
-}
+// pub fn err_result_msg(msg: impl ToString) -> BaseResponse<String> {
+//     BaseResponse {
+//         msg: msg.to_string(),
+//         code: 1,
+//         data: None,
+//     }
+// }
+
 
 // 统一返回分页
 #[derive(Serialize, Debug, Clone)]
@@ -88,7 +136,6 @@ pub struct ResponsePage<T>
     pub code: i32,
     pub msg: String,
     pub total: u64,
-    pub success: bool,
     pub data: Option<T>,
 }
 
@@ -96,17 +143,15 @@ pub fn ok_result_page<T: Serialize + Debug>(data: T, total: u64) -> ResponsePage
     ResponsePage {
         msg: "操作成功".to_string(),
         code: 0,
-        success: true,
         data: Some(data),
         total,
     }
 }
 
-pub fn err_result_page<T: Serialize + Debug>(data: T, msg: String) -> ResponsePage<T> {
+pub fn err_result_page<T: Serialize + Debug>(data: T, msg: impl ToString) -> ResponsePage<T> {
     ResponsePage {
         msg: msg.to_string(),
         code: 1,
-        success: false,
         data: Some(data),
         total: 0,
     }

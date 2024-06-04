@@ -1,4 +1,6 @@
 # @host=http://localhost:3000
+### db status
+GET {{host}}/status
 
 ###登录 login
 # @name login
@@ -13,7 +15,6 @@ Content-Type: application/json
 > {% client.global.set("token", response.body.data); %}
 
 ###vscode @token = {{login.response.body.data}}
-
 
 
 ###查询用户菜单 query_user_menu
@@ -68,3 +69,13 @@ Authorization: Bearer {{token}}
 }
 
 
+###修改密码 update_user_password
+POST {{host}}/api/update_user_password
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "id": 2,
+  "password": "e10adc3949ba59abbe56e057f20f883e",
+  "new_password": "e10adc3949ba59abbe56e057f20f883e"
+}

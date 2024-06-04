@@ -191,6 +191,6 @@ pub struct UserDeleteReq {
 #[derive(Debug, Deserialize)]
 pub struct UpdateUserPwdReq {
     pub id: u64,
-    pub pwd: String,
-    pub re_pwd: String,
+    pub password: String,
+    pub new_password: String,
 }

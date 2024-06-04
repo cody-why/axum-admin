@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use axum::{middleware, Router};
+use axum::response::IntoResponse;
+use axum::routing::get;
 use tower_http::{cors::{Any, CorsLayer}, services::{ServeDir, ServeFile}, trace::TraceLayer};
 
-use crate::{AppState, middleware::auth::auth};
-
+use crate::{AppState, middleware::auth::auth, pool};
 use super::{menu_handler, role_handler, user_handler};
 
 pub fn app(app_state: Arc<AppState>) -> Router {
@@ -15,16 +16,24 @@ pub fn app(app_state: Arc<AppState>) -> Router {
     let cors_layer = CorsLayer::new().allow_methods(Any).allow_origin(Any).allow_headers(Any);
     
     Router::new()
+
         .nest("/api", Router::new()
         .merge(user_handler::router())
         .merge(role_handler::router())
         .merge(menu_handler::router())
         .with_state(app_state)
     )
-    .route_layer(middleware::from_fn(auth))
-    .layer(trace_layer)
-    .layer(cors_layer)
-    .merge(app2())
+        .route_layer(middleware::from_fn(auth))
+        .route("/status", get(db_status))
+        .layer(trace_layer)
+        .layer(cors_layer)
+        .merge(app2())
+}
+
+async fn db_status() -> impl IntoResponse {
+    let state = pool!().get_pool().expect("pool not init!").state().await;
+    state.to_string()
+
 }
 
 pub fn app2() -> Router {
