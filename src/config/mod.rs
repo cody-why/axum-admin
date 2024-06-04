@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::env::args;
-
 use serde::Deserialize;
 use crate::error::Error;
+use crate::error::Result;
 
 pub mod db;
 
@@ -54,14 +54,14 @@ impl Config {
         init_config()
     }
 
-    pub fn get_error(&self, code: &str) -> Error {
+    pub fn get_error(&self, code: &str) -> Result<()> {
         let error_info = self.get_error_info(code);
-        Error::Code(code.to_string(), error_info)
+        Err(Error::Code(code.to_string(), error_info))
     }
 
-    pub fn get_error_arg(&self, code: &str, arg: String) -> Error {
+    pub fn get_error_arg(&self, code: &str, arg: String) -> Result<()> {
         let error_info = self.get_error_info(code);
-        Error::Code(code.to_string(), error_info.replace("{}", &arg))
+        Err(Error::Code(code.to_string(), error_info.replace("{}", &arg)))
     }
 
     pub fn get_error_info(&self, code: &str) -> String {

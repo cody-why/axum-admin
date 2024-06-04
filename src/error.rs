@@ -1,5 +1,4 @@
 use std::fmt::Debug;
-
 use rbatis::rbdc;
 use thiserror::Error;
 
@@ -25,7 +24,6 @@ impl From<&str> for Error {
         Error::E(s.to_string())
     }
 }
-
 
 #[macro_export]
 macro_rules! error_info {

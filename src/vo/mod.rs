@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use axum::response::IntoResponse;
+use axum::{response::IntoResponse, Json};
 use serde::Serialize;
 
 use crate::error::Error;
@@ -8,7 +8,7 @@ pub mod user_vo;
 pub mod role_vo;
 pub mod menu_vo;
 
-// 统一返回vo
+/// 统一返回vo
 #[derive(Serialize, Debug, Clone)]
 pub struct BaseResponse<T>
     where T: Serialize + Debug
@@ -73,59 +73,35 @@ impl<T> From<T> for BaseResponse<T>
     }
 }
 
+/// 统一返回结果
+pub struct Response<T>(pub Result<T, Error>);
 
-impl<T> BaseResponse<T>
-    where
-        T: Serialize + Debug,
-{
-    pub fn json(self) -> axum::Json<BaseResponse<T>> {
-        axum::Json(self)
+impl <T>Response<T> {
+    pub fn ok(data: T) -> Self {
+        Self(Ok(data))
     }
-}
 
-// 处理统一返回
-pub fn handle_result<T>(result: Result<T, impl Into<Error>>) -> impl IntoResponse
-    where T: Serialize + Debug
-{
-    match result {
-        Ok(d) => {
-            BaseResponse {
-                code: "0".to_string(),
-                msg: Some("操作成功".to_string()),
-                data: Some(d),
-            }
-        }
-        Err(err) => {
-            BaseResponse::from(err.into())
+    pub fn err(err: impl Into<Error>) -> Self {
+        Self(Err(err.into()))
+    }
+
+    pub fn result(result: core::result::Result<T, impl Into<Error>>) -> Self {
+        match result {
+            Ok(data) => Self(Ok(data)),
+            Err(err) => Self(Err(err.into())),
         }
     }
+
 }
 
-
-pub fn handle_result_msg(msg: impl Into<String>) -> impl IntoResponse {
-    BaseResponse {
-        code: "0".to_string(),
-        msg: Some(msg.into()),
-        data: Some("".to_string()),
+impl <T>IntoResponse for Response<T>
+where T: Serialize+Debug,
+{
+    fn into_response(self) -> axum::response::Response {
+        BaseResponse::from(self.0).into_response()
+        
     }
 }
-
-pub fn handle_result_data<T: Serialize + Debug>(data: T) -> impl IntoResponse {
-    BaseResponse::from(data)
-}
-
-pub fn handle_error(err: impl Into<Error>) -> impl IntoResponse{
-    BaseResponse::<String>::from(err.into())
-}
-
-
-// pub fn err_result_msg(msg: impl ToString) -> BaseResponse<String> {
-//     BaseResponse {
-//         msg: msg.to_string(),
-//         code: 1,
-//         data: None,
-//     }
-// }
 
 
 // 统一返回分页
@@ -139,20 +115,20 @@ pub struct ResponsePage<T>
     pub data: Option<T>,
 }
 
-pub fn ok_result_page<T: Serialize + Debug>(data: T, total: u64) -> ResponsePage<T> {
-    ResponsePage {
+pub fn ok_result_page<T: Serialize + Debug>(data: T, total: u64) -> Json<ResponsePage<T>> {
+    Json(ResponsePage {
         msg: "操作成功".to_string(),
         code: 0,
         data: Some(data),
         total,
-    }
+    })
 }
 
-pub fn err_result_page<T: Serialize + Debug>(data: T, msg: impl ToString) -> ResponsePage<T> {
-    ResponsePage {
+pub fn err_result_page<T: Serialize + Debug>(data: T, msg: impl ToString) -> Json<ResponsePage<T>> {
+    Json(ResponsePage {
         msg: msg.to_string(),
         code: 1,
         data: Some(data),
         total: 0,
-    }
+    })
 }

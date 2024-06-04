@@ -11,6 +11,7 @@ use rbatis::RBatis;
 use rbatis::rbdc::datetime::DateTime;
 use rbs::to_value;
 
+use crate::vo::Response;
 use crate::AppState;
 use crate::middleware::context::UserContext;
 use crate::model::menu::{SysMenu, SysMenuUrl};
@@ -48,11 +49,11 @@ pub async fn login(State(state): State<Arc<AppState>>, Json(item): Json<UserLogi
             user
         }
         Ok(None) => {
-            return handle_error("用户不存在").into_response()
+            return Response::err("用户不存在")
         }
         Err(e) => {
             log::info!("select_by_mobile err: {:?}", e);
-            return handle_error("查询用户异常").into_response()
+            return Response::err("查询用户异常")
         }
     };
 
@@ -60,16 +61,17 @@ pub async fn login(State(state): State<Arc<AppState>>, Json(item): Json<UserLogi
     let username = user.user_name;
 
     if !Password::verify(&item.password, &user.password) {
-        return handle_error("密码不正确").into_response()
+        return Response::err("密码不正确")
     }
 
     let btn_menu = query_btn_menu(id, rb.clone()).await;
 
     if btn_menu.is_empty() {
-        return handle_error("用户没有分配角色或者菜单,不能登录").into_response()
+        return Response::err("用户没有分配角色或者菜单,不能登录")
     }
+
     let token = JWTToken::new(id, &username, btn_menu).create_token("123");
-    handle_result(token).into_response()
+    Response(token)
 }
 
 async fn query_btn_menu(id: u64, rb: RBatis) -> Vec<String> {
@@ -114,11 +116,12 @@ pub async fn query_user_role(State(state): State<Arc<AppState>>, Json(item): Jso
     for x in sys_role.unwrap() {
         sys_role_list.push(x.into());
     }
-
-    handle_result_data(QueryUserRoleData {
+    let result =QueryUserRoleData {
         sys_role_list,
         user_role_ids,
-    }).into_response()
+    };
+    Response::ok(result)
+
 }
 
 pub async fn update_user_role(State(state): State<Arc<AppState>>, Json(item): Json<UpdateUserRoleReq>) -> impl IntoResponse {
@@ -130,13 +133,13 @@ pub async fn update_user_role(State(state): State<Arc<AppState>>, Json(item): Js
     let len = item.role_ids.len();
 
     if user_id == 1 {
-        return handle_error("不能修改超级管理员的角色").into_response()
+        return Response::err("不能修改超级管理员的角色")
     }
 
     let sys_result = SysUserRole::delete_by_column(rb, "user_id", user_id).await;
 
     if sys_result.is_err() {
-        return handle_error("更新用户角色异常").into_response()
+        return Response::err("更新用户角色异常")
     }
 
     let mut sys_role_user_list: Vec<SysUserRole> = Vec::new();
@@ -155,7 +158,7 @@ pub async fn update_user_role(State(state): State<Arc<AppState>>, Json(item): Js
 
     let result = SysUserRole::insert_batch(rb, &sys_role_user_list, len as u64).await;
 
-    handle_result(result).into_response()
+    Response::ok(result)
 }
 
 pub async fn query_user_menu(State(state): State<Arc<AppState>>, content: UserContext) -> impl IntoResponse {
@@ -169,7 +172,7 @@ pub async fn query_user_menu(State(state): State<Arc<AppState>>, content: UserCo
             match sys_user {
                 // 用户不存在的情况
                 None => {
-                    handle_error("用户不存在").into_response()
+                    Response::err("用户不存在")
                 }
                 Some(user) => {
                     //role_id为1是超级管理员--判断是不是超级管理员
@@ -212,14 +215,13 @@ pub async fn query_user_menu(State(state): State<Arc<AppState>>, content: UserCo
                         avatar: "https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png".to_string(),
                         name: user.user_name,
                     };
-
-                    handle_result_data(resp).into_response()
+                    Response::ok(resp)
                 }
             }
         }
         // 查询用户数据库异常
         Err(err) => {
-            handle_error(err).into_response()
+            Response::err(err)
         }
     }
 }
@@ -231,8 +233,8 @@ pub async fn user_list(State(state): State<Arc<AppState>>, Json(item): Json<User
 
     let mobile = item.mobile.as_deref().unwrap_or_default();
     let status_id = item.status_id.as_deref().unwrap_or_default();
-    let page_req = &PageRequest::new(item.page_no, item.page_size);
-    let result = SysUser::select_page_by_name(rb, page_req, mobile, status_id).await;
+    let page_req = PageRequest::new(item.page_no, item.page_size);
+    let result = SysUser::select_page_by_name(rb, &page_req, mobile, status_id).await;
 
     let list_data: Vec<UserListData> = Vec::new();
     match result {
@@ -242,10 +244,10 @@ pub async fn user_list(State(state): State<Arc<AppState>>, Json(item): Json<User
                 user.into()
             }).collect();
 
-            Json(ok_result_page(list_data, total))
+            ok_result_page(list_data, total)
         }
         Err(err) => {
-            Json(err_result_page(list_data, err))
+            err_result_page(list_data, err)
         }
     }
 }
@@ -260,7 +262,7 @@ pub async fn user_save(State(state): State<Arc<AppState>>, Json(item): Json<User
 
     let result = SysUser::insert(rb, &sys_user).await;
 
-    handle_result(result)
+    Response::result(result)
 }
 
 // 更新用户信息
@@ -272,12 +274,13 @@ pub async fn user_update(State(state): State<Arc<AppState>>, Json(item): Json<Us
 
     match result {
         None => {
-            handle_error("用户不存在").into_response()
+            Response::err("用户不存在")
         }
         Some(_user) => {
-            let result = UserUpdateReq::update_by_column(rb, &item, "id").await;
-
-            handle_result(result).into_response()
+            let result = UserUpdateReq::update_by_column(rb, &item, "id")
+                .await
+                .map_err(|e| e.into());
+            Response(result)
         }
     }
 }
@@ -293,8 +296,7 @@ pub async fn user_delete(State(state): State<Arc<AppState>>, Json(item): Json<Us
             let _ = SysUser::delete_by_column(rb, "id", &id).await;
         }
     }
-
-    handle_result_msg("操作成功")
+    Response::ok("")
 }
 
 // 更新用户密码
@@ -309,7 +311,7 @@ pub async fn update_user_password(State(state): State<Arc<AppState>>, Json(item)
         Ok(user_result) => {
             match user_result {
                 None => {
-                    handle_error("用户不存在").into_response()
+                    Response::err("用户不存在")
                 }
                 Some(user) => {
                     if Password::verify(&item.password, &user.password) {
@@ -318,18 +320,18 @@ pub async fn update_user_password(State(state): State<Arc<AppState>>, Json(item)
                         let result = SysUser::update_password(rb, id, &password).await;
                         log::info!("update_user_pwd result: {:?}", result);
                         if result.is_ok() {
-                            handle_result_msg("操作成功").into_response()
+                            Response(Ok(""))
                         } else {
-                            handle_error("密码修改失败").into_response()
+                            Response::err("密码修改失败")
                         }
                     } else {
-                        handle_error("旧密码不正确").into_response()
+                        Response::err("旧密码不正确")
                     }
                 }
             }
         }
         Err(err) => {
-            handle_error(err).into_response()
+            Response::err(err)
         }
     }
 }
