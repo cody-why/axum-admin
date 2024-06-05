@@ -5,9 +5,15 @@ use crate::config::Config;
 use crate::config::db::init_db;
 
 pub mod sys_trash_service;
+pub mod menu_service;
+pub mod user_service;
+pub mod role_service;
 
 /// CONTEXT is all the service struct
-pub static CONTEXT: Lazy<ServiceContext> = Lazy::new(ServiceContext::new);
+pub static CONTEXT: Lazy<ServiceContext> = Lazy::new(||{
+    ServiceContext::new()
+});
+
 
 #[macro_export]
 macro_rules! context {
@@ -43,7 +49,7 @@ impl ServiceContext {
     }
 
     /// must call this method before using any service
-    pub async fn init_service(&self) {
+    pub async fn init_database(&self) {
         init_db(&self.config, &self.rb).await;
         // CacheService::new(&config).unwrap(),
     }

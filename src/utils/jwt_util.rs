@@ -78,7 +78,7 @@ where
     type Rejection = String;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        // log::info!("JWTToken from_request_parts");
+        // info!("JWTToken from_request_parts");
         let auth_header = parts.headers
             .get(header::AUTHORIZATION)
             .and_then(|header| header.to_str().ok());
@@ -86,16 +86,16 @@ where
         let token = if let Some(auth_header) = auth_header {
             auth_header.to_string().replace("Bearer ", "")
         } else {
-            // log::info!("Authorization header not found");
+            // info!("Authorization header not found");
             return Err("Authorization header not found".into());
         };
 
-        // log::info!("token:{}",token);
+        // info!("token:{}",token);
         let jwt_token_e = JWTToken::verify("123", &token);
         let jwt_token = match jwt_token_e {
             Ok(data) => { data }
             Err(err) => {
-                // log::error!("Token verify error:{}",err);
+                // error!("Token verify error:{}",err);
                 return Err(format!("Token verify error:{}",err));
             }
         };

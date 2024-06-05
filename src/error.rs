@@ -1,5 +1,3 @@
-use std::fmt::Debug;
-
 use rbatis::rbdc;
 use thiserror::Error;
 
@@ -19,6 +17,22 @@ pub enum Error {
     Code(String, String),
 }
 
+impl Error {
+    pub fn err<T>(s: impl Into<String>) -> Result<T> {
+        Err(Error::E(s.into()))
+    }
+}
+
+impl Error {
+    pub fn msg(&self) -> String {
+        match self {
+            Error::E(s) => s.clone(),
+            Error::Code(code, message) => format!("{}: {}", code, message),
+            _ => "Internal Server Error".to_string(),
+        }
+    }
+
+}
 
 impl From<&str> for Error {
     fn from(s: &str) -> Self {

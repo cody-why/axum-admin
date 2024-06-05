@@ -99,6 +99,7 @@ pub struct MenuUpdateReq {
 }
 
 impl_update!(MenuUpdateReq{}, "sys_menu");
+
 impl From<MenuUpdateReq> for SysMenu {
     fn from(req: MenuUpdateReq) -> Self {
         let now = Some(DateTime::now());

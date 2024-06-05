@@ -185,7 +185,7 @@ impl_update!(UserUpdateReq{}, "sys_user");
 
 #[derive(Debug, Deserialize)]
 pub struct UserDeleteReq {
-    pub ids: Vec<i32>,
+    pub ids: Vec<u64>,
 }
 
 #[derive(Debug, Deserialize)]

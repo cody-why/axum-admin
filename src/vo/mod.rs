@@ -1,25 +1,41 @@
-use std::fmt::Debug;
-use axum::response::IntoResponse;
+use axum::{response::IntoResponse, Json};
 use serde::Serialize;
+use std::fmt::Debug;
 
 use crate::error::Error;
 
-pub mod user_vo;
-pub mod role_vo;
 pub mod menu_vo;
+pub mod role_vo;
+pub mod user_vo;
 
 // 统一返回vo
 #[derive(Serialize, Debug, Clone)]
 pub struct BaseResponse<T>
-    where T: Serialize + Debug
+where
+    T: Serialize + Debug,
 {
     pub code: String,
     pub msg: Option<String>,
     pub data: Option<T>,
 }
 
-impl <T>IntoResponse for BaseResponse<T>
-    where T: Serialize + Debug
+impl<T> BaseResponse<T>
+where
+    T: Serialize + Debug,
+{
+    pub fn err(code: impl ToString, msg: impl ToString) -> Self {
+        Self {
+            code: code.to_string(),
+            msg: Some(msg.to_string()),
+            data: None,
+        }
+
+    }
+}
+
+impl<T> IntoResponse for BaseResponse<T>
+where
+    T: Serialize + Debug,
 {
     fn into_response(self) -> axum::response::Response {
         axum::Json(self).into_response()
@@ -27,7 +43,8 @@ impl <T>IntoResponse for BaseResponse<T>
 }
 
 impl<T> From<Result<T, Error>> for BaseResponse<T>
-    where T: Serialize + Debug,
+where
+    T: Serialize + Debug,
 {
     fn from(value: Result<T, Error>) -> Self {
         match value {
@@ -38,7 +55,8 @@ impl<T> From<Result<T, Error>> for BaseResponse<T>
 }
 
 impl<T> From<Error> for BaseResponse<T>
-    where T: Serialize + Debug,
+where
+    T: Serialize + Debug,
 {
     fn from(e: Error) -> Self {
         match e {
@@ -56,13 +74,14 @@ impl<T> From<Error> for BaseResponse<T>
                 code: "2".to_string(),
                 msg: Some("未知错误".to_string()),
                 data: None,
-            }
+            },
         }
     }
 }
 
 impl<T> From<T> for BaseResponse<T>
-    where T: Serialize + Debug,
+where
+    T: Serialize + Debug,
 {
     fn from(data: T) -> Self {
         Self {
@@ -74,69 +93,73 @@ impl<T> From<T> for BaseResponse<T>
 }
 
 
-impl<T> BaseResponse<T>
-    where
-        T: Serialize + Debug,
+impl<T> Response<T> 
+where 
+    T: Serialize + Debug,
 {
-    pub fn json(self) -> axum::Json<BaseResponse<T>> {
-        axum::Json(self)
+    pub fn ok(data: T) -> Self {
+        Self(Ok(data))
     }
-}
 
-// 处理统一返回
-pub fn handle_result<T>(result: Result<T, impl Into<Error>>) -> impl IntoResponse
-    where T: Serialize + Debug
-{
-    match result {
-        Ok(d) => {
-            BaseResponse {
-                code: "0".to_string(),
-                msg: Some("操作成功".to_string()),
-                data: Some(d),
-            }
-        }
-        Err(err) => {
-            BaseResponse::from(err.into())
+    pub fn err(err: impl Into<Error>) -> Self {
+        Self(Err(err.into()))
+    }
+
+    pub fn result(result: core::result::Result<T, impl Into<Error>>) -> Self {
+        match result {
+            Ok(data) => Self(Ok(data)),
+            Err(err) => Self(Err(err.into())),
         }
     }
 
+    pub fn result_page(result: core::result::Result<T, impl Into<Error>>, total: u64) -> Json<ResponsePage<T>> {
+        match result {
+            Ok(data) => ok_result_page(data, total),
+            Err(err) => err_result_page::<T>(err),
+        }
+    }
+    
 }
 
-impl <T>IntoResponse for Response<T>
-where T: Serialize+Debug,
+impl<T> IntoResponse for Response<T>
+where
+    T: Serialize + Debug,
 {
     fn into_response(self) -> axum::response::Response {
         BaseResponse::from(self.0).into_response()
-        
     }
 }
-
 
 /// 统一返回分页
 #[derive(Serialize, Debug, Clone)]
 pub struct ResponsePage<T>
-    where T: Serialize + Debug
+where
+    T: Serialize + Debug,
 {
     pub code: i32,
     pub msg: String,
     pub total: u64,
     pub data: Option<T>,
+    pub success: bool,
 }
 
-pub fn ok_result_page<T: Serialize + Debug>(data: T, total: u64) -> ResponsePage<T> {
-    ResponsePage {
+fn ok_result_page<T: Serialize + Debug>(data: T, total: u64) -> Json<ResponsePage<T>> {
+    Json(ResponsePage {
         msg: "操作成功".to_string(),
         code: 0,
         data: Some(data),
         total,
-    }
+        success: true,
+    })
 }
 
-pub fn err_result_page<T: Serialize + Debug>(data: T, msg: impl ToString) -> ResponsePage<T> {
-    ResponsePage {
-        msg: msg.to_string(),
+fn err_result_page<T: Serialize + Debug>(err: impl Into<Error>) -> Json<ResponsePage<T>> {
+    let msg = err.into().msg();
+    Json(ResponsePage {
+        msg,
         code: 1,
-        data: Some(data),
+        data: None,
         total: 0,
-    }
+        success: false,
+    })
 }
