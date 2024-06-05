@@ -99,36 +99,20 @@ pub fn handle_result<T>(result: Result<T, impl Into<Error>>) -> impl IntoRespons
             BaseResponse::from(err.into())
         }
     }
+
 }
 
-
-pub fn handle_result_msg(msg: impl Into<String>) -> impl IntoResponse {
-    BaseResponse {
-        code: "0".to_string(),
-        msg: Some(msg.into()),
-        data: Some("".to_string()),
+impl <T>IntoResponse for Response<T>
+where T: Serialize+Debug,
+{
+    fn into_response(self) -> axum::response::Response {
+        BaseResponse::from(self.0).into_response()
+        
     }
 }
 
-pub fn handle_result_data<T: Serialize + Debug>(data: T) -> impl IntoResponse {
-    BaseResponse::from(data)
-}
 
-pub fn handle_error(err: impl Into<Error>) -> impl IntoResponse{
-    BaseResponse::<String>::from(err.into())
-}
-
-
-// pub fn err_result_msg(msg: impl ToString) -> BaseResponse<String> {
-//     BaseResponse {
-//         msg: msg.to_string(),
-//         code: 1,
-//         data: None,
-//     }
-// }
-
-
-// 统一返回分页
+/// 统一返回分页
 #[derive(Serialize, Debug, Clone)]
 pub struct ResponsePage<T>
     where T: Serialize + Debug

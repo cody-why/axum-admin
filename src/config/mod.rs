@@ -46,6 +46,7 @@ pub struct Config {
     // pub log: LogConfig,
     pub db: DBConfig,
     pub redis: RedisConfig,
+    #[serde(skip)]
     pub errors: HashMap<String, String>,
 }
 
