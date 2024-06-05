@@ -6,6 +6,7 @@ use axum::response::IntoResponse;
 use axum::routing::post;
 use rbatis::plugin::page::PageRequest;
 
+use crate::vo::Response;
 use crate::AppState;
 use crate::model::menu::SysMenu;
 use crate::model::role::SysRole;
@@ -32,8 +33,8 @@ pub async fn role_list(State(state): State<Arc<AppState>>, Json(item): Json<Role
     let role_name = item.role_name.as_deref().unwrap_or_default();
     let status_id = item.status_id.as_deref().unwrap_or_default();
 
-    let page_req = &PageRequest::new(item.page_no, item.page_size);
-    let result = SysRole::select_page_by_name(rb, page_req, role_name, status_id).await;
+    let page_req = PageRequest::new(item.page_no, item.page_size);
+    let result = SysRole::select_page_by_name(rb, &page_req, role_name, status_id).await;
 
     let mut role_list: Vec<RoleListData> = Vec::new();
     match result {
@@ -41,14 +42,13 @@ pub async fn role_list(State(state): State<Arc<AppState>>, Json(item): Json<Role
             let total = page.total;
 
             for role in page.records {
-
                 role_list.push(RoleListData::from(role));
             }
 
-            Json(ok_result_page(role_list, total))
+            ok_result_page(role_list, total)
         }
         Err(err) => {
-            Json(err_result_page(role_list, err.to_string()))
+            err_result_page(role_list, err)
         }
     }
 }
@@ -61,8 +61,7 @@ pub async fn role_save(State(state): State<Arc<AppState>>, Json(item): Json<Role
     let sys_role = SysRole::from(item);
 
     let result = SysRole::insert(rb, &sys_role).await;
-
-    handle_result(result)
+    Response::result(result)
 }
 
 // 更新角色信息
@@ -73,8 +72,7 @@ pub async fn role_update(State(state): State<Arc<AppState>>, Json(item): Json<Ro
     // let sys_role = SysRole::from(item);
 
     let result = RoleUpdateReq::update_by_column(rb, &item, "id").await;
-
-    handle_result(result)
+    Response::result(result)
 }
 
 // 删除角色信息
@@ -86,11 +84,10 @@ pub async fn role_delete(State(state): State<Arc<AppState>>, Json(item): Json<Ro
     let user_role_list = SysUserRole::select_in_column(rb, "role_id", &ids).await.unwrap_or_default();
 
     if !user_role_list.is_empty() {
-        return handle_error("角色已被使用,不能直接删除").into_response();
+        return Response::err("角色已被使用,不能直接删除");
     }
     let result = SysRole::delete_in_column(rb, "id", &item.ids).await;
-
-    handle_result(result).into_response()
+    Response::result(result)
 }
 
 // 查询角色关联的菜单
@@ -124,7 +121,7 @@ pub async fn query_role_menu(State(state): State<Arc<AppState>>, Json(item): Jso
         role_menus: role_menu_ids,
         menu_list: menu_data_list,
     };
-    handle_result_data(result)
+    Response::ok(result)
 }
 
 // 更新角色关联的菜单
@@ -146,11 +143,10 @@ pub async fn update_role_menu(State(state): State<Arc<AppState>>, Json(item): Js
             }
 
             let result = SysRoleMenu::insert_batch(rb, &menu_role, item.menu_ids.len() as u64).await;
-
-            handle_result(result).into_response()
+            Response::result(result)
         }
         Err(err) => {
-            handle_error(err).into_response()
+            Response::err(err)
         }
     }
 }

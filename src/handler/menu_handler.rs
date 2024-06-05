@@ -5,6 +5,7 @@ use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::routing::post;
 
+use crate::vo::Response;
 use crate::AppState;
 use crate::model::menu::SysMenu;
 use crate::vo::*;
@@ -32,10 +33,10 @@ pub async fn menu_list(State(state): State<Arc<AppState>>, Json(item): Json<Menu
             for menu in sys_menu_list {
                 menu_list.push(MenuListData::from(menu))
             }
-            Json(ok_result_page(menu_list, 0))
+            ok_result_page(menu_list, 0)
         }
         Err(err) => {
-            Json(err_result_page(menu_list, err.to_string()))
+            err_result_page(menu_list, err)
         }
     }
 }
@@ -49,7 +50,7 @@ pub async fn menu_save(State(state): State<Arc<AppState>>, Json(item): Json<Menu
 
     let result = SysMenu::insert(rb, &sys_menu).await;
 
-    handle_result(result)
+    Response::result(result)
 }
 
 // 更新菜单
@@ -61,7 +62,7 @@ pub async fn menu_update(State(state): State<Arc<AppState>>, Json(item): Json<Me
     
     let result = MenuUpdateReq::update_by_column(rb, &item, "id").await;
 
-    handle_result(result)
+    Response::result(result)
 }
 
 // 删除菜单信息
@@ -73,10 +74,10 @@ pub async fn menu_delete(State(state): State<Arc<AppState>>, Json(item): Json<Me
     let menus = SysMenu::select_by_column(rb, "parent_id", &item.id).await.unwrap_or_default();
 
     if !menus.is_empty() {
-        return handle_error("有下级菜单,不能直接删除").into_response()
+        return Response::err("有下级菜单,不能直接删除")
     }
 
     let result = SysMenu::delete_by_column(rb, "id", &item.id).await;
 
-    handle_result(result).into_response()
+    Response::result(result)
 }
