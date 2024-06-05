@@ -4,12 +4,12 @@ appenders:
     kind: console
     encoder:
       # pattern: "{d(%Y-%m-%d %H:%M:%S)} [{f}:{L}] {h({l})} [{M}] - {m}{n}"
-      pattern: "{d(%Y-%m-%d %H:%M:%S)} {h({l})} - {m}{n} - [{M}] {f}:{L}{n}"
+      pattern: "{d(%Y-%m-%d %H:%M:%S)} {h({l})} - {m}{n} - [{M}] [{f}:{L}]{n}"
   requests:
     kind: file
     path: "target/log.nosync/file-{d(%Y-%m-%d)}.log"
     encoder:
-      pattern: "{d(%Y-%m-%d %H:%M:%S)} {h({l})} - {m}{n} - [{M}] {f}:{L}{n}"
+      pattern: "{d(%Y-%m-%d %H:%M:%S)} {h({l})} - {m}{n} - [{M}] [{f}:{L}]{n}"
 root:
   level: debug
   appenders:

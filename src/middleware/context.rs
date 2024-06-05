@@ -14,7 +14,7 @@ where
     type Rejection = String;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        // log::info!("UserContext from_request_parts");
+        // info!("UserContext from_request_parts");
         if let Some(auth) = parts.extensions.get::<Self>() {
             return Ok(auth.clone());
         }

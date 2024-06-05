@@ -37,6 +37,8 @@ impl_select!(SysUser{select_by_id(id:u64) -> Option => "`where id = #{id} limit 
 impl_select!(SysUser{select_by_mobile(mobile:&str) -> Option => "`where mobile = #{mobile} limit 1`"});
 
 
+
+
 impl SysUser {
     #[py_sql("update sys_user set password = #{password} where id = #{id}")]
     pub async fn update_password(rb: &RBatis, id: u64, password: &str) -> Result<ExecResult, rbatis::Error> {
