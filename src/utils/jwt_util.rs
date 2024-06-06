@@ -1,38 +1,62 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
+use std::{sync::OnceLock, time::Duration};
 use axum::extract::FromRequestParts;
 use axum::http::header;
 use axum::http::request::Parts;
 use jsonwebtoken::{Algorithm, decode, DecodingKey, encode, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
+use crate::{error::Error, service::CONTEXT};
 
-use crate::error::Error;
+use super::get_timestamp;
+
+fn get_key()-> &'static Keys {
+    static KEYS: OnceLock<Keys> = OnceLock::new();
+    KEYS.get_or_init(|| {
+        let secret = CONTEXT.config.jwt_secret.as_str();
+        Keys::new(secret)
+
+    })
+}
+
+struct Keys {
+    encoding_key: EncodingKey,
+    decoding_key: DecodingKey,
+}
+
+impl Keys {
+    fn new(secret: impl AsRef<[u8]>) -> Self {
+        let secret = secret.as_ref();
+        Self {
+            encoding_key: EncodingKey::from_secret(secret),
+            decoding_key: DecodingKey::from_secret(secret),
+        }
+    }
+}
+
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JWTToken {
     pub id: u64,
     pub username: String,
     pub permissions: Vec<String>,
-    exp: usize,
-    iat: usize,
-    aud: String,
+    exp: u64,
+    iat: u64,
+    // aud: String,
 
 }
 
 impl JWTToken {
     pub fn new(id: u64, username: &str, permissions: Vec<String>) -> JWTToken {
-        let now = SystemTime::now();
         //过期时间
-        let m30 = Duration::from_secs(1800000);
-        let now = now.duration_since(UNIX_EPOCH).expect("获取系统时间失败");
+        let m30 = Duration::from_secs(CONTEXT.config.jwt_exp).as_secs();
+        let now = get_timestamp();
 
         JWTToken {
             id,
             username: String::from(username),
             permissions,
-            aud: String::from("rust_admin"), // (audience)：受众
-            exp: (now + m30).as_secs() as usize,
-            iat: now.as_secs() as usize,  // (Issued At)：签发时间
+            exp: now + m30,
+            iat: now,                            // (Issued At)：签发时间
+            // aud: String::from("rust_admin"), // (audience)：受众
             // iss: String::from("code"),     // (issuer)：签发人
             // nbf: now.as_secs() as usize,  // (Not Before)：生效时间
             // sub: String::from("rust_admin"), // (subject)：主题
@@ -41,33 +65,40 @@ impl JWTToken {
     }
 
     /// create token
-    /// secret: your secret string
-    pub fn create_token(&self, secret: &str) -> Result<String, Error> {
-        return match encode(
+    pub fn create_token(&self) -> Result<String, Error> {
+        encode(
             &Header::default(),
             self,
-            &EncodingKey::from_secret(secret.as_ref()),
-        ) {
-            Ok(t) => Ok(t),
-            Err(e) => Err(Error::Jwt(e)),
-        };
+            &get_key().encoding_key,
+        ).map_err(Error::Jwt)
+      
     }
+   
     /// verify token invalid
-    /// secret: your secret string
-    pub fn verify(secret: &str, token: &str) -> Result<JWTToken, Error> {
+    pub fn verify(token: &str) -> Result<JWTToken, Error> {
         let mut validation = Validation::new(Algorithm::HS256);
         // validation.sub = Some("rust_admin".to_string());
-        validation.set_audience(&["rust_admin"]);
-        validation.set_required_spec_claims(&["exp", "aud"]);
+        // validation.set_audience(&["rust_admin"]);
+        validation.set_required_spec_claims(&["exp"]);// "aud"
         
         decode::<JWTToken>(
             token,
-            &DecodingKey::from_secret(secret.as_ref()),
+            &get_key().decoding_key,
             &validation,
         ).map(|c| c.claims)
             .map_err(Error::Jwt)
         
     }
+
+    pub fn check_refresh(&mut self) -> Result<String, Error> {
+        let now = get_timestamp();
+        if self.exp - now < CONTEXT.config.jwt_refresh_token {
+            self.exp += CONTEXT.config.jwt_exp;
+            return self.create_token()
+        }
+        Error::err("not refresh token")
+    }
+
 }
 
 #[axum::async_trait]
@@ -91,7 +122,7 @@ where
         };
 
         // info!("token:{}",token);
-        let jwt_token_e = JWTToken::verify("123", &token);
+        let jwt_token_e = JWTToken::verify(&token);
         let jwt_token = match jwt_token_e {
             Ok(data) => { data }
             Err(err) => {
@@ -111,9 +142,9 @@ mod tests {
     #[test]
     fn test_jwt() {
         let jwt = JWTToken::new(1, "code", vec![]);
-        let res = jwt.create_token("123") ;
+        let res = jwt.create_token() ;
         println!("{:?}",res);
-        let token = JWTToken::verify("123", &res.unwrap());
+        let token = JWTToken::verify( &res.unwrap());
         println!("{:?}",token)
 
     }

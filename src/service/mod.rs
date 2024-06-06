@@ -14,7 +14,7 @@ pub static CONTEXT: Lazy<ServiceContext> = Lazy::new(||{
     ServiceContext::new()
 });
 
-
+/// erverwhere use the `context!` macro to get a reference to the `ServiceContext` struct.
 #[macro_export]
 macro_rules! context {
     () => {
@@ -22,6 +22,7 @@ macro_rules! context {
     };
 }
 
+/// erverwhere use the `pool!` macro to get a reference to the `RBatis` pool.
 #[macro_export]
 macro_rules! pool {
     () => {

@@ -1,7 +1,7 @@
 use crate::{pool, Result};
 use rbatis::plugin::page::PageRequest;
 use rbatis::Page;
-use tracing::info;
+use log::info;
 use crate::model::menu::SysMenu;
 use crate::model::role::SysRole;
 use crate::model::role_menu::{query_menu_by_role, SysRoleMenu};

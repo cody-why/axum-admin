@@ -2,7 +2,7 @@ use axum::Json;
 use axum::response::IntoResponse;
 use axum::Router;
 use axum::routing::{get, post};
-use tracing::info;
+use log::info;
 use crate::service::user_service;
 use crate::middleware::context::UserContext;
 use crate::vo::*;
@@ -25,7 +25,7 @@ pub fn router() -> Router{
 pub async fn login(Json(item): Json<UserLoginReq>) -> impl IntoResponse {
     info!("user login params: {:?}", &item);
     let result = user_service::login(item).await;
-     Response(result)
+    Response::result(result)
 }
 
 pub async fn query_user_role(Json(item): Json<QueryUserRoleReq>) -> impl IntoResponse {

@@ -2,7 +2,7 @@
 use axum::{Json, Router};
 use axum::response::IntoResponse;
 use axum::routing::post;
-use tracing::info;
+use log::info;
 
 use crate::service::menu_service;
 use crate::vo::Response;
