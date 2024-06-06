@@ -40,7 +40,6 @@ impl From<&str> for Error {
     }
 }
 
-
 #[macro_export]
 macro_rules! error_info {
     ($code: expr) => {

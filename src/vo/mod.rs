@@ -8,7 +8,7 @@ pub mod menu_vo;
 pub mod role_vo;
 pub mod user_vo;
 
-// 统一返回vo
+/// 统一返回vo
 #[derive(Serialize, Debug, Clone)]
 pub struct BaseResponse<T>
 where
@@ -92,6 +92,8 @@ where
     }
 }
 
+/// 统一返回结果
+pub struct Response<T>(pub Result<T, Error>);
 
 impl<T> Response<T> 
 where 
