@@ -1,4 +1,4 @@
-use tracing::info;
+use log::info;
 
 use crate::Error;
 use crate::Result;

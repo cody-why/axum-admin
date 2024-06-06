@@ -14,7 +14,7 @@ pub struct BaseResponse<T>
 where
     T: Serialize + Debug,
 {
-    pub code: String,
+    pub code: i32,
     pub msg: Option<String>,
     pub data: Option<T>,
 }
@@ -23,9 +23,9 @@ impl<T> BaseResponse<T>
 where
     T: Serialize + Debug,
 {
-    pub fn err(code: impl ToString, msg: impl ToString) -> Self {
+    pub fn err(code: i32, msg: impl ToString) -> Self {
         Self {
-            code: code.to_string(),
+            code,
             msg: Some(msg.to_string()),
             data: None,
         }
@@ -61,17 +61,17 @@ where
     fn from(e: Error) -> Self {
         match e {
             Error::E(msg) => Self {
-                code: "1".to_string(),
+                code: 1,
                 msg: Some(msg),
                 data: None,
             },
-            Error::Code(code, msg) => Self {
-                code: code.to_string(),
+            Error::Code(_code, msg) => Self {
+                code: 2,
                 msg: Some(msg),
                 data: None,
             },
             _ => Self {
-                code: "2".to_string(),
+                code: 3,
                 msg: Some("未知错误".to_string()),
                 data: None,
             },
@@ -85,7 +85,7 @@ where
 {
     fn from(data: T) -> Self {
         Self {
-            code: "0".to_string(),
+            code: 0,
             msg: Some("操作成功".to_string()),
             data: Some(data),
         }
@@ -142,7 +142,6 @@ where
     pub msg: String,
     pub total: u64,
     pub data: Option<T>,
-    pub success: bool,
 }
 
 fn ok_result_page<T: Serialize + Debug>(data: T, total: u64) -> Json<ResponsePage<T>> {
@@ -151,7 +150,6 @@ fn ok_result_page<T: Serialize + Debug>(data: T, total: u64) -> Json<ResponsePag
         code: 0,
         data: Some(data),
         total,
-        success: true,
     })
 }
 
@@ -162,6 +160,5 @@ fn err_result_page<T: Serialize + Debug>(err: impl Into<Error>) -> Json<Response
         code: 1,
         data: None,
         total: 0,
-        success: false,
     })
 }

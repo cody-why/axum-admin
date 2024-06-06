@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 use rbatis::plugin::page::PageRequest;
-use rbatis::{Page, RBatis};
+use rbatis::Page;
 use rbatis::rbdc::datetime::DateTime;
 use rbs::to_value;
-use tracing::info;
+use log::info;
 use crate::{pool, Error};
 use crate::middleware::context::UserContext;
 use crate::model::menu::{SysMenu, SysMenuUrl};
@@ -43,36 +43,39 @@ pub async fn login(item: UserLoginReq) -> Result<String> {
         return Error::err("密码不正确")
     }
 
-    let btn_menu = query_btn_menu(id, rb.clone()).await;
-
+    let btn_menu = query_btn_menu(id).await;
+    info!("btn_menu: {:?}", btn_menu);
     if btn_menu.is_empty() {
         return Error::err("用户没有分配角色或者菜单,不能登录")
     }
 
-    let token = JWTToken::new(id, &username, btn_menu).create_token("123")?;
+    let token = JWTToken::new(id, &username, btn_menu).create_token()?;
     Ok(token)
 }
 
-async fn query_btn_menu(id: u64, rb: RBatis) -> Vec<String> {
-    let user_role = SysUserRole::is_admin(&rb, id).await;
-
+async fn query_btn_menu(id: u64) -> Vec<String> {
+    let rb = pool!();
+    let user_role = SysUserRole::is_admin(rb, id).await;
+    if user_role.is_err() {
+        return vec![]
+    }
     if user_role.unwrap().len() == 1 {
         info!("admin login: {:?}",id);
-        let data = SysMenu::select_all(&rb).await.unwrap_or_default();
+        let data = SysMenu::select_all(rb).await.unwrap_or_default();
+        // info!("btn_menu_vec: {:?}",data);
         data.into_iter().filter_map(|x| x.api_url.filter(|x| !x.is_empty())).collect()
 
     } else {
         info!("ordinary login: {:?}",id);
 
         // distinct--返回不重复的数据
-        let sql = "select distinct m.api_url from sys_user_role ur
-                left join sys_role r on ur.role_id = r.id
-                left join sys_role_menu rm on r.id = rm.role_id
+        let sql = "select distinct m.api_url from sys_user_role ur 
+                left join sys_role r on ur.role_id = r.id 
+                left join sys_role_menu rm on r.id = rm.role_id 
                 left join sys_menu m on rm.menu_id = m.id where ur.user_id = ?";
-        // let btn_menu_map: Vec<HashMap<String, String>> = rb.query_decode(sql, vec![to_value!(id)]).await.unwrap();
-        let btn_menu_vec: Vec<SysMenuUrl> = rb.query_decode(sql, vec![to_value!(id)]).await.unwrap_or_default();
-        info!("btn_menu_vec: {:?}",btn_menu_vec);
-        btn_menu_vec.into_iter().filter_map(|x| x.api_url.filter(|x|!x.is_empty())).collect()
+        let data: Vec<SysMenuUrl> = rb.query_decode(sql, vec![to_value!(id)]).await.unwrap_or_default();
+        // info!("btn_menu_vec: {:?}",data);
+        data.into_iter().filter_map(|x| x.api_url.filter(|x|!x.is_empty())).collect()
 
     }
 }
@@ -147,9 +150,9 @@ pub async fn query_user_menu(content: UserContext) -> Result<QueryUserMenuData> 
             if count > 0 {
                 SysMenu::select_all(rb).await.unwrap_or_default()
             } else {
-                let sql = "select m.* from sys_user_role ur
-                        left join sys_role r on ur.role_id = r.id
-                        left join sys_role_menu rm on r.id = rm.role_id
+                let sql = "select m.* from sys_user_role ur 
+                        left join sys_role r on ur.role_id = r.id 
+                        left join sys_role_menu rm on r.id = rm.role_id 
                         left join sys_menu m on rm.menu_id = m.id where ur.user_id = ?";
                 rb.query_decode(sql, vec![to_value!(user.id)]).await.unwrap()
             };

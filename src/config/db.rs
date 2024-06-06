@@ -1,6 +1,6 @@
 use std::time::Duration;
 use rbatis::RBatis;
-use tracing::info;
+use log::info;
 use crate::config::Config;
 
 /// init database pool

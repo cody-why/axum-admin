@@ -1,31 +1,33 @@
 use std::collections::HashMap;
-use std::env::args;
+use std::env;
 use serde::Deserialize;
+use log::info;
 use crate::error::Error;
 use crate::error::Result;
 
 pub mod db;
 
-
 fn init_config() -> Config {
-    let config_file = args().nth(1).unwrap_or_else(|| "config/application.yaml".to_string());
-    
+    // let config_file = args().find(|e| e.starts_with("--config="))
+    //     .map(|e| e.split_at("--config=".len()).1.to_string())
+    //     .unwrap_or("config/application.yaml".to_string());
+    let config_file = env::var("CONFIG_FILE").unwrap_or("config/application.yaml".to_string());
+    println!("config_file: {}", config_file);
     #[cfg(not(debug_assertions))]
     {
         let path = std::env::current_exe().unwrap().parent().unwrap().join("");
         // println!("current_exe: {:?}", path);
         std::env::set_current_dir(path).unwrap();
     }
-    println!("current_dir: {:?}", std::env::current_dir().unwrap());
-
+    info!("current_dir: {:?}, config_file: {}", std::env::current_dir().unwrap(), config_file);
     let file = std::fs::File::open(config_file).expect("failed to open file");
     let mut config: Config = serde_yaml::from_reader(file).expect("failed to parse file");
-    let errors = init_error_config().errors;
+    let errors = init_error().errors;
     config.errors = errors;
     config
 }
 
-fn init_error_config() -> ErrorConfig {
+fn init_error() -> ErrorConfig {
     let config_file =  "config/errors.yaml";
     let file = std::fs::File::open(config_file).expect("failed to open file");
     serde_yaml::from_reader(file).expect("failed to parse file")
@@ -36,12 +38,12 @@ pub struct Config {
     pub addr: String,
     pub cache_type: String,
     pub jwt_secret: String,
-    pub jwt_exp: usize,
-    pub jwt_refresh_token: usize,
+    pub jwt_exp: u64,
+    pub jwt_refresh_token: u64,
     pub white_list_api: Vec<String>,
-    pub login_fail_retry: usize,
-    pub login_fail_retry_wait_sec: usize,
-    pub trash_recycle_days: usize,
+    pub login_fail_retry: u64,
+    pub login_fail_retry_wait_sec: u64,
+    pub trash_recycle_days: u64,
     pub datetime_format: String,
     // pub log: LogConfig,
     pub db: DBConfig,
@@ -111,3 +113,10 @@ pub struct ErrorConfig{
     pub errors: HashMap<String,String>,
 }
 
+#[allow(clippy::len_zero)]
+#[test]
+fn load_config_test() {
+    let config = Config::new();
+    println!("{:#?}",config);
+    assert!(config.addr.len() > 0);
+}

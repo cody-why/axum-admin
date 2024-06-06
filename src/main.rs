@@ -13,7 +13,7 @@ pub mod error;
 
 use handler::root::*;
 use rbatis::RBatis;
-use tracing::info;
+use log::info;
 use crate::service::CONTEXT;
 
 #[cfg(not(target_env = "msvc"))]
