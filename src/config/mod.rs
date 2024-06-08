@@ -1,11 +1,11 @@
+
 use std::collections::HashMap;
 use std::env;
 use serde::Deserialize;
 use log::info;
-use crate::error::Error;
 use crate::error::Result;
+use crate::Error;
 
-pub mod db;
 
 fn init_config() -> Config {
     // let config_file = args().find(|e| e.starts_with("--config="))
@@ -46,8 +46,8 @@ pub struct Config {
     pub trash_recycle_days: u64,
     pub datetime_format: String,
     // pub log: LogConfig,
+    pub redis_url: String,
     pub db: DBConfig,
-    pub redis: RedisConfig,
     #[serde(skip)]
     pub errors: HashMap<String, String>,
 }
@@ -103,10 +103,6 @@ pub struct DBConfig{
     pub connect_timeout: u32,
 }
 
-#[derive(Debug, Default, Deserialize)]
-pub struct RedisConfig{
-    pub url: String,
-}
 
 #[derive(Debug,Default, Deserialize)]
 pub struct ErrorConfig{

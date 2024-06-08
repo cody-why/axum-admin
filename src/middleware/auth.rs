@@ -4,6 +4,7 @@ use axum::http::{HeaderValue, StatusCode};
 use axum::middleware::Next;
 use axum::response;
 use log::info;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::middleware::context::UserContext;
 use crate::utils::jwt_util::JWTToken;
@@ -29,8 +30,9 @@ pub async fn auth(jwt_token: Result<JWTToken, String>, mut req: Request, next: N
        
     }
     
-    info!("permissions: {:?}",jwt_token.permissions);
-    let flag = jwt_token.permissions.iter().any(|permission| permission == &path);
+    // debug!("permissions: {:?}",jwt_token.permissions);
+    let flag = jwt_token.permissions.par_iter().any(|permission| permission == &path);
+    info!("auth req {:?} {:?} flag={}", req.method(), req.uri(), flag);
     if flag {
         let context = UserContext {
             id: jwt_token.id,

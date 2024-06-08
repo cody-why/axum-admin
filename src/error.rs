@@ -7,6 +7,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("{0}")]
     E(String),
+    #[error("其他")]
+    Internal(String),
     #[error("{0}")]
     Io(#[from] std::io::Error),
     #[error("{0}")]
