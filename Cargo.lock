@@ -118,7 +118,13 @@ name = "axum-admin"
 version = "0.1.0"
 dependencies = [
  "axum",
+<<<<<<< HEAD
  "bcrypt",
+=======
+ "bb8-redis",
+ "bcrypt",
+ "dashmap",
+>>>>>>> dev
  "jsonwebtoken",
  "log",
  "log4rs",
@@ -129,7 +135,10 @@ dependencies = [
  "rbatis",
  "rbdc-mysql",
  "rbs",
+<<<<<<< HEAD
  "redis",
+=======
+>>>>>>> dev
  "serde",
  "serde_json",
  "serde_yaml",
@@ -196,6 +205,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8c3c1a368f70d6cf7302d78f8f7093da241fb8e8807c05cc9e51a125895a6d5b"
 
 [[package]]
+<<<<<<< HEAD
+=======
+name = "bb8"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df7c2093d15d6a1d33b1f972e1c5ea3177748742b97a5f392aa83a65262c6780"
+dependencies = [
+ "async-trait",
+ "futures-channel",
+ "futures-util",
+ "parking_lot",
+ "tokio",
+]
+
+[[package]]
+name = "bb8-redis"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7eb4f141b33a750b5f667c445bd8588de10b8f2b045cd2aabc040ca746fb53ae"
+dependencies = [
+ "async-trait",
+ "bb8",
+ "redis",
+]
+
+[[package]]
+>>>>>>> dev
 name = "bcrypt"
 version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -306,7 +342,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba5a308b75df32fe02788e748662718f03fde005016435c444eea572398219fd"
 dependencies = [
  "bytes",
+<<<<<<< HEAD
  "memchr",
+=======
+ "futures-core",
+ "memchr",
+ "pin-project-lite",
+ "tokio",
+ "tokio-util",
+>>>>>>> dev
 ]
 
 [[package]]
@@ -378,6 +422,23 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
+=======
+name = "dashmap"
+version = "5.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "978747c1d849a7d2ee5e8adc0159961c48fb7e5db2f06af6723b80123bb53856"
+dependencies = [
+ "cfg-if",
+ "hashbrown",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
+ "rayon",
+]
+
+[[package]]
+>>>>>>> dev
 name = "der"
 version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1430,12 +1491,25 @@ version = "0.25.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0d7a6955c7511f60f3ba9e86c6d02b3c3f144f8c24b288d1f4e18074ab8bbec"
 dependencies = [
+<<<<<<< HEAD
  "combine",
  "itoa",
  "percent-encoding",
  "ryu",
  "sha1_smol",
  "socket2",
+=======
+ "async-trait",
+ "bytes",
+ "combine",
+ "futures-util",
+ "itoa",
+ "percent-encoding",
+ "pin-project-lite",
+ "ryu",
+ "tokio",
+ "tokio-util",
+>>>>>>> dev
  "url",
 ]
 
@@ -1645,12 +1719,15 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "sha1_smol"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ae1a47186c03a32177042e55dbc5fd5aee900b8e0069a8d70fba96a9375cd012"
 
 [[package]]
+=======
+>>>>>>> dev
 name = "sha2"
 version = "0.10.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -25,6 +25,5 @@ db:
   min_connections: 2
   connect_timeout: 60
 
-redis:
-  # url: redis:#user:pwd@host:port/db
-  url: redis:#:789789@172.17.99.45:6379/
+# url: redis://user:pwd@host:port/db
+redis_url: redis://:789789@172.17.99.45:6379/

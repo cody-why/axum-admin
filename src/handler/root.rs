@@ -1,4 +1,7 @@
 
+use std::time::Duration;
+
+use axum::http::{Request, Response};
 use axum::{middleware, Router};
 use axum::response::IntoResponse;
 use axum::routing::get;
@@ -12,7 +15,13 @@ pub fn app() -> Router {
     // let origins = [
     //     "http://localhost:3000".parse().unwrap(),
     // ];
-    let trace_layer = TraceLayer::new_for_http();
+    let trace_layer = TraceLayer::new_for_http()
+        .on_request(|request: &Request<_>, _span: &_| {
+            log::debug!("on_request: {} {}", request.method(), request.uri().path());
+        })
+        .on_response(|response: &Response<_>, latency: Duration, _span: &_| {
+            log::debug!("on_response: {:?}ms, {:?}", latency.as_millis(), response.status());
+        });
     let cors_layer = CorsLayer::new().allow_methods(Any).allow_origin(Any).allow_headers(Any);
     
     Router::new()
@@ -27,7 +36,7 @@ pub fn app() -> Router {
         .route("/status", get(db_status))
         .layer(trace_layer)
         .layer(cors_layer)
-        .merge(app2())
+        .merge(static_file())
 }
 
 async fn db_status() -> impl IntoResponse {
@@ -36,7 +45,7 @@ async fn db_status() -> impl IntoResponse {
 
 }
 
-pub fn app2() -> Router {
+pub fn static_file() -> Router {
     Router::new()
     .nest_service("/", ServeDir::new("dist/")
        .not_found_service(ServeFile::new("dist/index.html")))

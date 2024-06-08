@@ -1,9 +1,11 @@
 use std::collections::HashSet;
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rbatis::plugin::page::PageRequest;
 use rbatis::Page;
 use rbatis::rbdc::datetime::DateTime;
 use rbs::to_value;
 use log::info;
+use crate::service::login_service;
 use crate::{pool, Error};
 use crate::middleware::context::UserContext;
 use crate::model::menu::{SysMenu, SysMenuUrl};
@@ -18,6 +20,8 @@ use crate::Result;
 
 // 后台用户登录
 pub async fn login(item: UserLoginReq) -> Result<String> {
+    let try_num = login_service::is_need_wait_login_ex(&item.mobile).await?;
+
     let rb = pool!();
 
     let user_result = SysUser::select_by_mobile(rb, &item.mobile).await;
@@ -35,16 +39,23 @@ pub async fn login(item: UserLoginReq) -> Result<String> {
             return Error::err("查询用户异常")
         }
     };
-
+    if !Password::verify(&item.password, &user.password) {
+        login_service::add_retry_login_limit_num(&item.mobile).await?;
+        
+        return Error::err("密码不正确")
+    }
+    if try_num > 0 {
+        login_service::remove_retry_login_limit_num(&item.mobile).await?;
+    }
+    if user.status_id!= 1 {
+        return Error::err("用户已被禁用")
+    }
+    
     let id = user.id.unwrap();
     let username = user.user_name;
 
-    if !Password::verify(&item.password, &user.password) {
-        return Error::err("密码不正确")
-    }
-
     let btn_menu = query_btn_menu(id).await;
-    info!("btn_menu: {:?}", btn_menu);
+    // info!("btn_menu: {:?}", btn_menu);
     if btn_menu.is_empty() {
         return Error::err("用户没有分配角色或者菜单,不能登录")
     }
@@ -59,11 +70,15 @@ async fn query_btn_menu(id: u64) -> Vec<String> {
     if user_role.is_err() {
         return vec![]
     }
+    
     if user_role.unwrap().len() == 1 {
         info!("admin login: {:?}",id);
         let data = SysMenu::select_all(rb).await.unwrap_or_default();
         // info!("btn_menu_vec: {:?}",data);
-        data.into_iter().filter_map(|x| x.api_url.filter(|x| !x.is_empty())).collect()
+        data.par_iter().filter_map(|x|{
+            x.api_url.as_ref().filter(|u|!u.is_empty())
+        }).cloned().collect()
+       
 
     } else {
         info!("ordinary login: {:?}",id);
@@ -75,20 +90,23 @@ async fn query_btn_menu(id: u64) -> Vec<String> {
                 left join sys_menu m on rm.menu_id = m.id where ur.user_id = ?";
         let data: Vec<SysMenuUrl> = rb.query_decode(sql, vec![to_value!(id)]).await.unwrap_or_default();
         // info!("btn_menu_vec: {:?}",data);
-        data.into_iter().filter_map(|x| x.api_url.filter(|x|!x.is_empty())).collect()
+        data.par_iter().filter_map(|x|{
+            x.api_url.as_ref().filter(|u|!u.is_empty())
+        }).cloned().collect()
 
     }
+   
 }
 
 pub async fn query_user_role(item: QueryUserRoleReq) -> Result<QueryUserRoleData> {
     let rb = pool!();
 
     let user_role = SysUserRole::select_by_column(rb, "user_id", item.user_id).await?;
-    let user_role_ids: Vec<i32> = user_role.iter().map(|x| x.role_id).collect();
+    let user_role_ids: Vec<i32> = user_role.par_iter().map(|x| x.role_id).collect();
 
     let sys_role = SysRole::select_all(rb).await?;
 
-    let sys_role_list: Vec<UserRoleList> = sys_role.into_iter().map(|x| x.into()).collect();
+    let sys_role_list: Vec<UserRoleList> = sys_role.into_par_iter().map(|x| x.into()).collect();
 
     let result =QueryUserRoleData {
         sys_role_list,
@@ -237,7 +255,7 @@ pub async fn user_update(item: UserUpdateReq) -> Result<u64> {
 pub async fn user_delete(item: UserDeleteReq) -> Result<u64> {
     let rb = pool!();
     //id为1的用户为系统预留用户,不能删除
-    let ids: Vec<u64> = item.ids.iter()
+    let ids: Vec<u64> = item.ids.par_iter()
         .filter(|x| **x != 1).cloned()
         .collect();
 

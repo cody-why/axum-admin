@@ -43,12 +43,6 @@ impl From<SysMenu> for MenuListData {
     }
 }
 
-#[test]
-fn test() {
-    let time = DateTime::now();
-    println!("{:?}", time.to_string());
-    println!("{:?}", time.0.to_string())
-}
 
 #[derive(Debug, Deserialize)]
 pub struct MenuSaveReq {
@@ -83,7 +77,7 @@ impl From<MenuSaveReq> for SysMenu {
     }
 }
 
-#[derive(Debug,Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MenuUpdateReq {
     pub id: i32,
     pub sort: i32,
@@ -91,7 +85,7 @@ pub struct MenuUpdateReq {
     pub parent_id: i32,
     pub menu_name: String,
     pub menu_url: Option<String>,
-    #[serde(rename = "menu_icon")]
+    #[serde(rename(serialize = "menu_icon"))]
     pub icon: Option<String>,
     pub api_url: Option<String>,
     pub remark: Option<String>,
@@ -122,5 +116,5 @@ impl From<MenuUpdateReq> for SysMenu {
 
 #[derive(Debug, Deserialize)]
 pub struct MenuDeleteReq {
-    pub id: i32,
+    pub ids: Vec<i32>,
 }

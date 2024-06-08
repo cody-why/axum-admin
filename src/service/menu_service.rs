@@ -32,10 +32,8 @@ pub async fn menu_save(item: MenuSaveReq) -> Result<u64> {
 pub async fn menu_update(item: MenuUpdateReq) -> Result<u64> {
     info!("menu_update params: {:?}", &item);
     let rb = pool!();
-
-    // let sys_menu = SysMenu::from(item);
-    
-    let result = MenuUpdateReq::update_by_column(rb, &item, "id").await?;
+    let sys_menu = SysMenu::from(item);
+    let result = SysMenu::update_by_column(rb, &sys_menu, "id").await?;
 
     Ok(result.rows_affected)
 }
@@ -44,15 +42,15 @@ pub async fn menu_update(item: MenuUpdateReq) -> Result<u64> {
 pub async fn menu_delete(item: MenuDeleteReq) -> Result<u64> {
     info!("menu_delete params: {:?}", &item);
     let rb = pool!();
-
-    //有下级的时候 不能直接删除
-    let menus = SysMenu::select_by_column(rb, "parent_id", &item.id).await.unwrap_or_default();
-
-    if !menus.is_empty() {
-        return Error::err("有下级菜单,不能直接删除")
+    let mut count = 0;
+    for id in item.ids {
+        //有下级的时候 不能直接删除
+        let menus = SysMenu::select_by_column(rb, "parent_id", &id).await.unwrap_or_default();
+        if !menus.is_empty() {
+            return Error::err("有下级菜单,不能直接删除")
+        }
+        let result = SysMenu::delete_by_column(rb, "id", &id).await?;
+        count += result.rows_affected;
     }
-
-    let result = SysMenu::delete_by_column(rb, "id", &item.id).await?;
-
-    Ok(result.rows_affected)
+    Ok(count)
 }
